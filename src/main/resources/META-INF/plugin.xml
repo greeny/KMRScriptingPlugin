@@ -1,0 +1,205 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+	<!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+	<id>dev.greeny.kmr</id>
+
+	<!-- Public plugin name should be written in Title Case.
+		 Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+	<name>KMR Scripting</name>
+
+	<!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+	<vendor email="greenyaptec@gmail.com">greeny</vendor>
+
+	<!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+		 Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+		 Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+	<description>Support for PascalScript used in Knights and Merchants Remake for scripting maps.</description>
+	<change-notes><![CDATA[
+	<h2>0.2.0</h2>
+	<ul>
+		<li>Added: parameter name hints in calls (Actions.ShowMsg(aHand: 0, aText: 'Hi')); hidden when the argument is named like the parameter; configurable under Settings | Editor | Inlay Hints</li>
+		<li>Added: array elements addressed by a constant index have their own kind (Slots[SLOT_UNIT] vs Slots[SLOT_HOUSE]); @kind aId unitId|houseId declares a parameter accepting either; API members with an ...Ex variant are marked deprecated</li>
+		<li>Changed: API stubs use { } doc comments with @param for every parameter and @kind tags (the same tags you can write in your scripts); doc tags are coloured; block comments above declarations render in Reader Mode; default indentation is a tab (4 wide)</li>
+		<li>Fixed: type checks follow the game's PascalScript: "/" on two integers is an integer, enums and integers may be assigned to each other, Variant values (High, Low, Succ) are accepted anywhere</li>
+		<li>Added: folding of procedures/functions, var/const/type blocks, loops and with statements; breadcrumbs (procedure > for > if ...) above the editor; gutter icons also on {$EVENT} directives and shown without delay</li>
+		<li>Added: {$EVENT} directives naming an unknown event or a missing procedure are errors; rename refuses invalid identifiers and warns about names already used in the scope or by the API</li>
+		<li>Changed: game versions are r16020 and r6720; New | KMR Script offers an empty script or a script with include guard</li>
+		<li>Added: xor, shl and shr operators</li>
+		<li>Added: PascalScript's standard routines (Inc, Dec, Length, SetLength, High, Low, IntToStr, Copy, Pos, Trim, Round, ...) exactly as the game's compiler defines them: completion, parameter info, documentation and navigation; Delphi routines the game lacks (Random, Format, Min/Max, ...) are reported with the replacement to use</li>
+		<li>Added: kinds of integers (unit ID, house ID, group ID, hand index, X/Y coordinate, legacy type ids, ticks) known for the whole API and inferred for your variables, fields, parameters and results; a new inspection reports a house ID passed as a unit ID, swapped X/Y, arithmetic on ids, literals where an id is expected, comparisons between different kinds and conflicting assignments; completion, parameter info and documentation show "Integer (unit ID)"</li>
+		<li>Added: Reformat Code with a Code Style page (2-space Pascal indentation), structure view, code folding, gutter icons on event handlers, spell checking, live templates (proc, func, if, for, case, guard, msg, tick, ...), New | KMR Script, Go to Symbol</li>
+		<li>Added: type checking of assignments, arguments (e.g. an Integer passed where a TKMUnitType is expected), conditions, operators, indexing, for loops and case labels</li>
+		<li>Added: inspections for unresolved identifiers and API members (with "available in version X" hints), deprecated members, wrong argument counts, duplicate declarations across a script and its includes, unused locals, wrong event handler signatures (with fix), include/conditional directive problems, missing include guards (with fix), and invalid assignments/statements</li>
+		<li>Fixed: exceptions at IDE start while indexing</li>
+		<li>Added: code completion for API members (Actions./States./Utils.), variables, constants, types, routines, enum values and keywords; event handler templates (type "On..." at file level)</li>
+		<li>Added: parameter info (Ctrl+P) and quick documentation (Ctrl+Q) for API members and your own routines, with deprecation and "available since" information</li>
+		<li>Added: game version switcher in the status bar ("KMR: latest")</li>
+		<li>Added: the KaM Remake scripting API (Actions, States, Utils, Types, Events) as navigable stubs generated from the wiki; Ctrl+click on Actions.ShowMsg opens its declaration with documentation</li>
+		<li>Added: game version setting (r16020 / r6720) per project and per map under Settings | Languages &amp; Frameworks | KMR PascalScript</li>
+		<li>Added: {$EVENT evtName:Handler} directives link to the event and to the handler procedure</li>
+		<li>Added: set of ... types and array of const</li>
+		<li>Added: go to declaration, find usages and rename for variables, constants, types, routines, parameters, record fields and enum values (case-insensitive)</li>
+		<li>Added: {$I} / {$INCLUDE} directives link to the included file</li>
+		<li>Added: analysis follows the game's model: entry-point scripts (next to .dat/.map) plus their includes form one unit; shared scripts show a banner to pick the entry point they are analysed in</li>
+		<li>Added: {$DEFINE}/{$IFDEF}/{$IFNDEF}/{$ELSE}/{$ENDIF} are evaluated like the game's preprocessor; excluded code is dimmed and its declarations are ignored</li>
+		<li>Added: matching of begin/case/record ... end, repeat ... until and {$IFDEF} ... {$ENDIF}</li>
+		<li>Added: error recovery inside procedure bodies; one syntax error no longer breaks the rest of the procedure</li>
+		<li>Added: operator precedence in expressions</li>
+		<li>Added: hexadecimal numbers ($FF), exponents, character literals (#13) and doubled quotes inside strings</li>
+		<li>Added: ranges in case labels, multiple statements in repeat/case else, multi-dimensional indexing, calls without argument list</li>
+		<li>Fixed: with ... do statements never parsed</li>
+		<li>Fixed: long procedures hit the parser recursion limit</li>
+		<li>Fixed: plugin can now be installed in all JetBrains IDEs, not only IntelliJ IDEA</li>
+	</ul>
+	<h2>0.1.2</h2>
+	<ul>
+		<li>Added: support for case-insensitive keywords</li>
+	</ul>
+	<h2>0.1.1a</h2>
+	<ul>
+		<li>Added: support for procedural types</li>
+		<li>Added: break/continue/true/false highlighting</li>
+		<li>Added: more highlighting configuration in settings</li>
+	</ul>
+	<h2>0.1.1</h2>
+	<ul>
+		<li>Added: support for (* comment *)</li>
+		<li>Changed supported versions</li>
+	</ul>
+	<h2>0.1.0</h2>
+	<ul>
+		<li>Added: support for commenting and uncommenting code</li>
+		<li>Added: matching begin/end pairs and brace pairs</li>
+		<li>Fixed: directives can now be anywhere in the code</li>
+	</ul>
+	<h2>0.0.1c</h2>
+	<ul>
+		<li>Added: support for with ... do statement</li>
+		<li>Added: support for empty statement body</li>
+		<li>Added: exit; support</li>
+	</ul>
+	<h2>0.0.1b</h2>
+	<ul>
+		<li>Added: support for enum construction</li>
+		<li>Added: support for repeat ... until loops</li>
+		<li>Added: in operator</li>
+		<li>Added: nil support</li>
+	</ul>
+	<h2>0.0.1a</h2>
+	<ul>
+		<li>Fixed: array-like expressions no longer require at least one value</li>
+	</ul>
+	<h2>0.0.1</h2>
+	<ul>
+		<li>Initial release</li>
+	</ul>
+	]]></change-notes>
+
+	<!-- Product and plugin compatibility requirements.
+		 Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+	<depends>com.intellij.modules.platform</depends>
+
+	<!-- Extension points defined by the plugin.
+		 Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+	<extensions defaultExtensionNs="com.intellij">
+		<lang.parserDefinition language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalParserDefinition"/>
+		<lang.ast.factory language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalASTFactory"/>
+		<lang.syntaxHighlighterFactory language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalSyntaxHighlighterFactory"/>
+		<annotator language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalAnnotator"/>
+		<colorSettingsPage implementation="dev.greeny.kmr.language.KmrPascalColorSettingsPage"/>
+		<lang.commenter language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalCommenter"/>
+		<lang.braceMatcher language="KmrPascal" implementationClass="dev.greeny.kmr.language.KmrPascalBraceMatcher"/>
+		<fileType name="PascalScript file" implementationClass="dev.greeny.kmr.language.KmrPascalFileType" fieldName="INSTANCE" language="KmrPascal" extensions="script"/>
+
+		<!-- references, navigation, rename -->
+		<lang.findUsagesProvider language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalFindUsagesProvider"/>
+		<lang.refactoringSupport language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalRefactoringSupportProvider"/>
+		<referencesSearch implementation="dev.greeny.kmr.language.editor.KmrPascalReferencesSearcher"/>
+		<psi.referenceContributor language="KmrPascal" implementation="dev.greeny.kmr.language.editor.KmrPascalIncludeReferenceContributor"/>
+
+		<!-- compilation units: entry points + includes + preprocessor -->
+		<fileBasedIndex implementation="dev.greeny.kmr.language.unit.KmrPascalIncludeIndex"/>
+		<editorNotificationProvider implementation="dev.greeny.kmr.language.editor.KmrPascalResolveContextNotificationProvider"/>
+		<additionalTextAttributes scheme="Default" file="colorSchemes/KmrPascalDefault.xml"/>
+		<additionalTextAttributes scheme="Darcula" file="colorSchemes/KmrPascalDarcula.xml"/>
+
+		<!-- code insight -->
+		<completion.contributor language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalCompletionContributor"/>
+		<codeInsight.parameterInfo language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalParameterInfoHandler"/>
+		<codeInsight.parameterNameHints language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalInlayParameterHintsProvider"/>
+		<lang.documentationProvider language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalDocumentationProvider"/>
+		<statusBarWidgetFactory id="KmrPascalGameVersion" implementation="dev.greeny.kmr.language.editor.KmrPascalVersionStatusBarWidgetFactory" order="after positionWidget"/>
+
+		<!-- inspections -->
+		<localInspection language="KmrPascal" shortName="KmrPascalUnresolvedReference" displayName="Unresolved identifier or member"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalUnresolvedReferenceInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalDeprecated" displayName="Deprecated API member or declaration"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalDeprecatedInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalArgumentCount" displayName="Wrong number of arguments"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalArgumentCountInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalDuplicateDeclaration" displayName="Duplicate declaration"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalDuplicateDeclarationInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalUnusedLocal" displayName="Unused local variable or parameter"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WEAK WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalUnusedLocalInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalEventHandler" displayName="Event handler signature"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalEventHandlerInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalPreprocessor" displayName="Include and conditional directive problems"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalPreprocessorInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalIncludeGuard" displayName="Shared script without include guard"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WEAK WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalIncludeGuardInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalMissingSemicolon" displayName="Statement without ';' after it"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalMissingSemicolonInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalIncDec" displayName="'X := X + 1' can be 'Inc(X)'"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WEAK WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalIncDecInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalStatement" displayName="Invalid assignment or statement"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalStatementInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalTypeCheck" displayName="Type mismatch"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalTypeCheckInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalKind" displayName="Unit ID, house ID, hand index or coordinate used as another kind"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalKindInspection"/>
+		<intentionAction>
+			<language>KmrPascal</language>
+			<className>dev.greeny.kmr.language.inspections.KmrPascalIncludeGuardInspection$AddIncludeGuardFix</className>
+			<category>KMR PascalScript</category>
+		</intentionAction>
+
+		<!-- editor polish -->
+		<lang.psiStructureViewFactory language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalStructureViewFactory"/>
+		<lang.foldingBuilder language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalFoldingBuilder"/>
+		<codeInsight.lineMarkerProvider language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalEventLineMarkerProvider"/>
+		<spellchecker.support language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalSpellcheckingStrategy"/>
+		<liveTemplateContext contextId="KMR_PASCAL" implementation="dev.greeny.kmr.language.editor.KmrPascalTemplateContextType"/>
+		<defaultLiveTemplates file="/liveTemplates/KmrPascal.xml"/>
+		<internalFileTemplate name="KMR Script"/>
+		<internalFileTemplate name="KMR Script with Include Guard"/>
+		<breadcrumbsInfoProvider implementation="dev.greeny.kmr.language.editor.KmrPascalBreadcrumbsProvider"/>
+		<renameInputValidator implementation="dev.greeny.kmr.language.editor.KmrPascalRenameInputValidator"/>
+		<renamePsiElementProcessor implementation="dev.greeny.kmr.language.editor.KmrPascalRenamePsiElementProcessor"/>
+		<gotoSymbolContributor implementation="dev.greeny.kmr.language.editor.KmrPascalGotoSymbolContributor"/>
+		<lang.formatter language="KmrPascal" implementationClass="dev.greeny.kmr.language.formatter.KmrPascalFormattingModelBuilder"/>
+		<langCodeStyleSettingsProvider implementation="dev.greeny.kmr.language.formatter.KmrPascalLanguageCodeStyleSettingsProvider"/>
+
+		<!-- API stubs / game version -->
+		<projectConfigurable parentId="language" instance="dev.greeny.kmr.language.editor.KmrPascalSettingsConfigurable"
+							 id="dev.greeny.kmr.settings" displayName="KMR PascalScript" nonDefaultProject="true"/>
+	</extensions>
+
+	<actions>
+		<action id="dev.greeny.kmr.NewScript" class="dev.greeny.kmr.language.editor.KmrPascalCreateFileAction" text="KMR Script" description="Create a new Knights and Merchants Remake script">
+			<add-to-group group-id="NewGroup" anchor="before" relative-to-action="NewFile"/>
+		</action>
+	</actions>
+</idea-plugin>

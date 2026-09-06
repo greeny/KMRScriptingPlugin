@@ -1,0 +1,368 @@
+{
+	parserClass="dev.greeny.kmr.language.parser.KmrPascalParser"
+
+	extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+	psiClassPrefix="KmrPascal"
+	psiImplClassSuffix="Impl"
+	psiPackage="dev.greeny.kmr.language.psi"
+	psiImplPackage="dev.greeny.kmr.language.psi.impl"
+
+	elementTypeHolderClass="dev.greeny.kmr.language.psi.KmrPascalTypes"
+	elementTypeClass="dev.greeny.kmr.language.psi.KmrPascalElementType"
+	tokenTypeClass="dev.greeny.kmr.language.psi.KmrPascalTokenType"
+
+	// every *_expression rule is a subclass of expression
+	extends(".*_expression")=expression
+
+	// the concrete type rules share a marker interface so declarations can expose "the type element"
+	implements(".*-type")="dev.greeny.kmr.language.psi.KmrPascalTypeElement"
+
+	tokens=[
+		BEGIN='begin'
+		END='end'
+		IF='if'
+		ELSE='else'
+		WITH='with'
+		WHILE='while'
+		REPEAT='repeat'
+		UNTIL='until'
+		FOR='for'
+		DO='do'
+		THEN='then'
+		TYPE='type'
+		VAR='var'
+		CONST='const'
+		PROCEDURE='procedure'
+		FUNCTION='function'
+		OUT='out'
+		TO='to'
+		DOWNTO='downto'
+		AND='and'
+		OR='or'
+		NOT='not'
+		DIV='div'
+		MOD='mod'
+		XOR='xor'
+		SHL='shl'
+		SHR='shr'
+		RECORD='record'
+		ARRAY='array'
+		CASE='case'
+		OF='of'
+		IN='in'
+		NIL='nil'
+		EXIT='exit'
+		CONTINUE='continue'
+		BREAK='break'
+		SET='set'
+		TRUE='true'
+		FALSE='false'
+
+		AT='@'
+
+		COLON=':'
+		SEMI=';'
+		DOT='.'
+		COMMA=','
+		DOUBLEDOT='..'
+
+		PLUS='+'
+		MINUS='-'
+		TIMES='*'
+		DIVIDE='/'
+		ASSIGN=':='
+		NOTEQ='<>'
+		EQ='='
+		LT='<'
+		GT='>'
+		LE='<='
+		GE='>='
+
+		LBRACKET='('
+		RBRACKET=')'
+		LSQUAREBRACKET='['
+		RSQUAREBRACKET=']'
+
+		// The regexps below are only used by Grammar-Kit's live preview; the real lexer is KmrPascal.flex.
+		NUMBER='regexp:(\d+(\.\d+)?([eE][+-]?\d+)?)|(\$[0-9a-fA-F]+)'
+		STRING="regexp:'([^']|'')*'"
+		CHAR='regexp:#(\d+|\$[0-9a-fA-F]+)'
+
+		SPACE='regexp:\s+'
+		IDENTIFIER='regexp:[a-zA-Z_][a-zA-Z0-9_]*'
+
+		// directive kinds (all skipped by the parser as comments, but distinguished for the preprocessor / brace matcher)
+		DIRECTIVE_INCLUDE='regexp:\{\$(I|INCLUDE) [^}]*}'
+		DIRECTIVE_DEFINE='regexp:\{\$DEFINE [^}]*}'
+		DIRECTIVE_UNDEF='regexp:\{\$UNDEF [^}]*}'
+		DIRECTIVE_IFDEF='regexp:\{\$IFDEF [^}]*}'
+		DIRECTIVE_IFNDEF='regexp:\{\$IFNDEF [^}]*}'
+		DIRECTIVE_EVENT='regexp:\{\$EVENT [^}]*}'
+		DIRECTIVE_ELSE='regexp:\{\$ELSE}'
+		DIRECTIVE_ENDIF='regexp:\{\$ENDIF}'
+		DIRECTIVE='regexp:\{\$[^}]*}'
+		COMMENT_A='regexp:(//[^\n]*)|(\{[^}]*})'
+		COMMENT_B='regexp:(\(\*.*?\*\))'
+	]
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Top level
+// ---------------------------------------------------------------------------------------------------------------------
+
+program ::= item*
+
+// !<<eof>> is pinned so that a failed item still counts as "parsed" and the program loop keeps going after recovery.
+private item ::= !<<eof>> declaration {pin=1 recoverWhile=item-recover}
+
+private item-recover ::= !(CONST | VAR | TYPE | PROCEDURE | FUNCTION)
+
+private declaration ::= constant-declarations | var-declarations | type-declarations | procedure-declaration | function-declaration
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Declarations
+// ---------------------------------------------------------------------------------------------------------------------
+
+constant-declarations ::= CONST constant-declaration+ {pin=1}
+
+constant-declaration ::= IDENTIFIER EQ expression SEMI {
+	pin=2
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalNamedElementImpl"
+	implements="dev.greeny.kmr.language.psi.KmrPascalNamedElement"
+}
+
+var-declarations ::= VAR var-declaration+ {pin=1}
+
+var-declaration ::= var-identifier (COMMA var-identifier)* COLON type-spec SEMI {pin=3}
+
+var-identifier ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalTypedIdentifierMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalTypedIdentifier"
+}
+
+type-declarations ::= TYPE type-declaration+ {pin=1}
+
+type-declaration ::= IDENTIFIER EQ type-spec SEMI {
+	pin=2
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalNamedElementImpl"
+	implements="dev.greeny.kmr.language.psi.KmrPascalNamedElement"
+}
+
+procedure-declaration ::= PROCEDURE IDENTIFIER declaration-arguments? SEMI local-declarations statement-list SEMI {
+	pin=1
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalRoutineDeclarationMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalRoutineDeclaration"
+}
+
+function-declaration ::= FUNCTION IDENTIFIER declaration-arguments? COLON type-spec SEMI local-declarations statement-list SEMI {
+	pin=1
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalRoutineDeclarationMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalRoutineDeclaration"
+}
+
+private local-declarations ::= (constant-declarations | var-declarations | type-declarations)*
+
+private declaration-arguments ::= LBRACKET declaration-argument-list? RBRACKET {pin=1}
+
+private declaration-argument-list ::= parameter-declaration (SEMI parameter-declaration)*
+
+parameter-declaration ::= argument-modifier? parameter-identifier (COMMA parameter-identifier)* COLON type-spec {pin=4}
+
+parameter-identifier ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalTypedIdentifierMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalTypedIdentifier"
+}
+
+argument-modifier ::= CONST | VAR | OUT
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------------------------------------------------
+
+// named type-spec because a rule called "type" would clash with the TYPE keyword token
+type-spec ::= structured-type | function-type | procedure-type | simple-type {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalTypeSpecMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalTypeOwner"
+}
+
+private structured-type ::= array-type | record-type | enum-type | set-type
+
+private simple-type ::= range-type | type-reference
+
+// the name does not match the implements(".*-type") pattern above, so the marker interface is listed explicitly
+type-reference ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalTypeReferenceMixin"
+	implements=["dev.greeny.kmr.language.psi.KmrPascalReferenceElement" "dev.greeny.kmr.language.psi.KmrPascalTypeElement"]
+}
+
+range-type ::= expression DOUBLEDOT expression {pin=2}
+
+// "array of const" is the open variant array used by e.g. Utils.Format
+array-type ::= ARRAY (LSQUAREBRACKET index-list RSQUAREBRACKET)? OF (CONST | type-spec) {pin=1}
+
+record-type ::= RECORD field-declaration* END {pin=1}
+
+field-declaration ::= field-identifier (COMMA field-identifier)* COLON type-spec SEMI {pin=3}
+
+field-identifier ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalTypedIdentifierMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalTypedIdentifier"
+}
+
+enum-type ::= LBRACKET enum-value (COMMA enum-value)* RBRACKET {pin=1}
+
+// set of TKMUnitType / set of Byte / set of 0..7
+set-type ::= SET OF simple-type {pin=1}
+
+enum-value ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalNamedElementImpl"
+	implements="dev.greeny.kmr.language.psi.KmrPascalNamedElement"
+}
+
+function-type ::= FUNCTION declaration-arguments? COLON type-spec {pin=1}
+
+procedure-type ::= PROCEDURE declaration-arguments? {pin=1}
+
+index-list ::= simple-type (COMMA simple-type)*
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Statements
+// ---------------------------------------------------------------------------------------------------------------------
+
+statement-list ::= BEGIN body END {pin=1}
+
+// Iterative (not recursive) so long procedures don't hit the parser recursion limit.
+// PascalScript does not require ';' between the statements of a block (its block loop merely skips semicolons), so
+// neither does the grammar; the missing-semicolon inspection reports them as a warning.
+// Every loop step consumes something (a ';' or a real statement), otherwise the empty statement would spin.
+private body ::= statement (SEMI statement | statement-no-empty)*
+
+// The single statement after then/else/do and the body of a case branch must be followed by ';', 'else' or 'end':
+// PascalScript's one-liner check rejects anything else (also 'until' and a directly following statement).
+// Pinned so that a failed check keeps the statement and reports at the offending token. No recovery of its own:
+// garbage after it is eaten by the recovery of the enclosing statement, so a following case label stays intact.
+private one-liner ::= statement-no-empty? &(SEMI | ELSE | END) {pin=1}
+
+// Recovery runs after every statement (successful or not) and skips garbage up to the next separator or
+// declaration keyword, so one broken statement no longer swallows the rest of the procedure.
+private statement ::= statement-no-empty | empty {recoverWhile=statement-recover}
+
+private statement-no-empty ::= statement-list
+	| if-statement
+	| while-statement
+	| repeat-statement
+	| with-statement
+	| for-statement
+	| case-statement
+	| exit-statement
+	| break-statement
+	| continue-statement
+	| assignment
+	| expression-statement
+
+// Stops at everything that can start the next statement, since no ';' is needed in between.
+private statement-recover ::= !(SEMI | END | ELSE | UNTIL | PROCEDURE | FUNCTION | CONST | VAR | TYPE
+	| BEGIN | IF | WHILE | REPEAT | WITH | FOR | CASE | EXIT | BREAK | CONTINUE | IDENTIFIER)
+
+empty ::=
+
+exit-statement ::= EXIT
+
+break-statement ::= BREAK
+
+continue-statement ::= CONTINUE
+
+assignment ::= expression ASSIGN expression {pin=2}
+
+// a call (with or without argument list) or any other expression used as a statement
+expression-statement ::= expression
+
+if-statement ::= IF expression THEN one-liner (ELSE one-liner)? {pin=1}
+
+while-statement ::= WHILE expression DO one-liner {pin=1}
+
+repeat-statement ::= REPEAT body UNTIL expression {pin=1}
+
+with-statement ::= WITH expression (COMMA expression)* DO one-liner {pin=1}
+
+for-statement ::= FOR identifier_expression ASSIGN expression (TO | DOWNTO) expression DO one-liner {pin=1}
+
+// PascalScript takes a single statement (or a begin..end block) after the else; the grammar accepts a whole body so
+// that more statements are one clear error from the statement inspection instead of a cascade of parse errors.
+case-statement ::= CASE expression OF case-branch* (ELSE body)? END {pin=1}
+
+case-branch ::= case-label (COMMA case-label)* COLON one-liner SEMI? {pin=3}
+
+case-label ::= expression (DOUBLEDOT expression)?
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Expressions (Pascal precedence, lowest first: relational, additive, multiplicative, unary, postfix)
+// Rule names use underscores on purpose: Grammar-Kit uses the raw rule name as a Java method name for
+// prefix/postfix expression rules.
+// ---------------------------------------------------------------------------------------------------------------------
+
+expression ::= comparison_expression
+	| additive_expression
+	| multiplicative_expression
+	| unary_expression
+	| address_expression
+	| postfix-group
+	| primary-group
+
+comparison_expression ::= expression comparison-operator expression
+
+additive_expression ::= expression additive-operator expression
+
+multiplicative_expression ::= expression multiplicative-operator expression
+
+unary_expression ::= unary-operator expression
+
+// @Handler
+address_expression ::= AT expression
+
+private postfix-group ::= call_expression | index_expression | member_expression
+
+// Note: pins have no effect inside Pratt expression tails, so an unfinished call ("Foo(1, ") does not produce a
+// call node; parameter info handles that case textually (KmrPascalParameterInfoHandler.findUnfinishedCall).
+call_expression ::= expression LBRACKET function-argument-list? RBRACKET
+
+index_expression ::= expression LSQUAREBRACKET index-expressions RSQUAREBRACKET
+
+// a.b — the node itself is the reference to "b", the left expression is the qualifier
+member_expression ::= expression DOT IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalReferenceExpressionMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalReferenceExpression"
+}
+
+private primary-group ::= paren_expression | array_expression | literal_expression | identifier_expression
+
+// consumeTokenFast: operators are not listed among the expected tokens of an error message ("';' expected, got 'x'"
+// instead of "';', '+', '-', ... expected"), they are rarely what is missing.
+private comparison-operator ::= EQ | NOTEQ | LT | GT | LE | GE | IN {consumeTokenMethod="consumeTokenFast"}
+
+private additive-operator ::= PLUS | MINUS | OR | XOR {consumeTokenMethod="consumeTokenFast"}
+
+private multiplicative-operator ::= TIMES | DIVIDE | DIV | MOD | AND | SHL | SHR {consumeTokenMethod="consumeTokenFast"}
+
+private unary-operator ::= NOT | MINUS | PLUS {consumeTokenMethod="consumeTokenFast"}
+
+paren_expression ::= LBRACKET expression RBRACKET {pin=1}
+
+array_expression ::= LSQUAREBRACKET (expression (COMMA expression)*)? RSQUAREBRACKET {pin=1}
+
+literal_expression ::= NUMBER | string-literal | NIL | TRUE | FALSE
+
+// 'abc'#13#10'def' is a single literal
+private string-literal ::= (STRING | CHAR)+
+
+// a bare identifier: variable, constant, routine, enum value, type, or an API object such as Actions.
+// (not called reference_expression: that name is taken by the handwritten common interface)
+identifier_expression ::= IDENTIFIER {
+	mixin="dev.greeny.kmr.language.psi.impl.KmrPascalReferenceExpressionMixin"
+	implements="dev.greeny.kmr.language.psi.KmrPascalReferenceExpression"
+}
+
+function-argument-list ::= expression (COMMA expression)*
+
+private index-expressions ::= expression (COMMA expression)*

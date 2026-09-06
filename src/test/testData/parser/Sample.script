@@ -1,0 +1,102 @@
+{$I common.script}
+// line comment
+(* block
+   comment *)
+{ another
+  block comment }
+
+const
+  MAX_PLAYERS = 8;
+  COLOR = $FF00FF;
+  NEG = -1;
+  MSG = 'Hello'#13#10'World''s';
+  HALF = 1.5e2;
+
+type
+  TUnitInfo = record
+    X, Y: Integer;
+    Alive: Boolean;
+  end;
+  TIntArray = array of Integer;
+  TGrid = array [0..MAX_PLAYERS-1, 0..3] of Integer;
+  TColor = (cRed, cGreen);
+  TCallback = procedure(aIndex: Integer);
+  TPredicate = function(const aValue: Integer): Boolean;
+
+var
+  Units: array of TUnitInfo;
+  Grid: TGrid;
+  Counter: Integer;
+  Cb: TCallback;
+
+procedure Helper(var aOut: Integer; const aIn: Integer; out aRes: Boolean);
+begin
+  aOut := aIn * 2;
+  aRes := aOut > 0;
+end;
+
+function Sum(aValues: TIntArray): Integer;
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 0 to Length(aValues) - 1 do
+    Result := Result + aValues[I];
+end;
+
+procedure OnMissionStart;
+var
+  I, J: Integer;
+  S: string;
+begin
+  Cb := @Helper;
+  SetLength(Units, MAX_PLAYERS);
+  for I := 0 to MAX_PLAYERS - 1 do
+  begin
+    Units[I].X := I;
+    Grid[I, 1] := I mod 2;
+    Grid[I][2] := I div 2;
+    with Units[I] do
+      Alive := True;
+  end;
+  I := 0;
+  repeat
+    Inc(I);
+    J := I;
+  until I >= 10;
+  while (I > 0) and not (J = 5) do
+    Dec(I);
+  case I of
+    0: Actions.ShowMsg(-1, MSG);
+    1, 2: begin end;
+    3..5: Exit;
+    6: ;
+    7: Actions.ShowMsg(0, 'no semicolon before else')
+    else begin
+      Actions.ShowMsg(0, 'else');
+      Counter := Counter + 1;
+    end;
+  end;
+  if States.PlayerIsAI(0) then
+    Actions.PlayerDefeat(0)
+  else if I <> 0 then
+    Actions.PlayerWin([0, 1], True)
+  else
+    Exit;
+  S := 'it''s ' + IntToStr(I);
+  Counter := (I + J) * 2 - -1;
+  OnMissionStart;
+  Actions.Foo;
+  Actions.Foo();
+  if Cb <> nil then Cb(1);
+end;
+
+PROCEDURE OnTick();
+BEGIN
+  IF States.GameTime MOD 600 = 0 THEN
+  BEGIN
+    Counter := Counter + 1;
+    IF Counter > 5 THEN Break;
+    Continue;
+  END;
+END;

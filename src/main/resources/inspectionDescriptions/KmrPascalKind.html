@@ -1,0 +1,12 @@
+<html><body>Reports integers used as a different <em>kind</em> of value than the KaM Remake API expects. Unit IDs, house IDs, group IDs, hand (player) indexes, X and Y coordinates, integer type ids of the old API and tick counts are all plain <code>Integer</code> for the game, but the plugin knows what every API parameter and result means and follows the values into your variables, record fields, array elements, parameters and function results.
+<p>Reported, each rule separately switchable:</p>
+<ul>
+	<li>an argument of one kind passed where another is expected (<code>Actions.HouseDestroy(UnitID, ...)</code>), including X and Y swapped;</li>
+	<li>an assignment of one kind to a variable of another, and variables that receive several different kinds;</li>
+	<li>an integer literal where a unit, house or group ID is expected (<code>-1</code> is always allowed);</li>
+	<li>arithmetic (<code>+ - * div mod Inc Dec</code>) on ids, ordering comparisons (<code>&lt;</code>, <code>&gt;</code>) between ids, comparisons between different kinds;</li>
+	<li>an integer type id passed to a function that has an <code>...Ex</code> variant taking <code>TKMUnitType</code> and friends.</li>
+</ul>
+<p>Kinds of your own declarations are inferred from what is assigned to them, from event handler signatures (the parameters of <code>OnHouseBuilt</code> are house IDs) or written explicitly: <code>// @kind unitId</code> above a variable, <code>// @kind aParam unitId</code> above a routine for a parameter, <code>// @kind none</code> to switch inference off for a declaration. An expression can be annotated too: <code>{@kind houseId}</code> above an assignment names the kind of the assigned value, and the same comment directly in front of an argument or operand names that expression's kind. Nothing is reported while a kind is unknown; an explicit <code>Integer(x)</code> cast removes a kind.</p>
+<p>Elements of an array indexed by constants (<code>Attack[ATTACKER_ID_] := ...</code>) keep their own kinds, also after the array is stored in another array or passed to a routine. An element read through a computed index from an array whose elements differ is unknown and never reported.</p>
+</body></html>

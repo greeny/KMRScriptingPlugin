@@ -1,0 +1,60 @@
+<templateSet group="KMR PascalScript">
+	<template name="proc" value="procedure $NAME$;&#10;begin&#10;  $END$&#10;end;" description="procedure" toReformat="false" toShortenFQNames="false">
+		<variable name="NAME" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="func" value="function $NAME$: $TYPE$;&#10;begin&#10;  Result := $END$;&#10;end;" description="function" toReformat="false" toShortenFQNames="false">
+		<variable name="NAME" expression="" defaultValue="" alwaysStopAt="true"/>
+		<variable name="TYPE" expression="" defaultValue="&quot;Integer&quot;" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="if" value="if $COND$ then&#10;  $END$" description="if ... then" toReformat="false" toShortenFQNames="false">
+		<variable name="COND" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="ifb" value="if $COND$ then&#10;begin&#10;  $END$&#10;end;" description="if ... then begin ... end" toReformat="false" toShortenFQNames="false">
+		<variable name="COND" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="ife" value="if $COND$ then&#10;begin&#10;  $THEN$&#10;end&#10;else&#10;begin&#10;  $END$&#10;end;" description="if ... then ... else" toReformat="false" toShortenFQNames="false">
+		<variable name="COND" expression="" defaultValue="" alwaysStopAt="true"/>
+		<variable name="THEN" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="for" value="for $VAR$ := $FROM$ to $TO$ do&#10;begin&#10;  $END$&#10;end;" description="for loop" toReformat="false" toShortenFQNames="false">
+		<variable name="VAR" expression="" defaultValue="&quot;I&quot;" alwaysStopAt="true"/>
+		<variable name="FROM" expression="" defaultValue="&quot;0&quot;" alwaysStopAt="true"/>
+		<variable name="TO" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="while" value="while $COND$ do&#10;begin&#10;  $END$&#10;end;" description="while loop" toReformat="false" toShortenFQNames="false">
+		<variable name="COND" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="repeat" value="repeat&#10;  $END$&#10;until $COND$;" description="repeat ... until" toReformat="false" toShortenFQNames="false">
+		<variable name="COND" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="case" value="case $EXPR$ of&#10;  $LABEL$: $END$;&#10;end;" description="case ... of" toReformat="false" toShortenFQNames="false">
+		<variable name="EXPR" expression="" defaultValue="" alwaysStopAt="true"/>
+		<variable name="LABEL" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="guard" value="{$IFNDEF $SYMBOL$}&#10;{$DEFINE $SYMBOL$}&#10;&#10;$END$&#10;&#10;{$ENDIF}" description="include guard" toReformat="false" toShortenFQNames="false">
+		<variable name="SYMBOL" expression="camelCase(fileNameWithoutExtension())" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="inc" value="{$I $FILE$}" description="include a script" toReformat="false" toShortenFQNames="false">
+		<variable name="FILE" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="msg" value="Actions.ShowMsg($PLAYER$, '$TEXT$');" description="show a message" toReformat="false" toShortenFQNames="false">
+		<variable name="PLAYER" expression="" defaultValue="&quot;-1&quot;" alwaysStopAt="true"/>
+		<variable name="TEXT" expression="" defaultValue="" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+	<template name="tick" value="if States.GameTime mod $TICKS$ = 0 then&#10;begin&#10;  $END$&#10;end;" description="every N ticks (in OnTick)" toReformat="false" toShortenFQNames="false">
+		<variable name="TICKS" expression="" defaultValue="&quot;600&quot;" alwaysStopAt="true"/>
+		<context><option name="KMR_PASCAL" value="true"/></context>
+	</template>
+</templateSet>

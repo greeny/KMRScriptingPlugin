@@ -1,0 +1,4 @@
+{${DS}IFNDEF ${NAME}Script}
+{${DS}DEFINE ${NAME}Script}
+
+{${DS}ENDIF}

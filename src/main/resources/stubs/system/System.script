@@ -1,0 +1,428 @@
+{
+	PascalScript standard library as compiled into KaM Remake.
+	HAND-WRITTEN from the compiler the game embeds: reyandme/pascalscript, Source/uPSCompiler.pas,
+	TPSPascalCompiler.DefineStandardTypes / DefineStandardProcedures (commit e40e5c4, 2024-11-30), which KM_Scripting.pas
+	uses without any of the optional uPSC_* libraries. Ord and Chr are keywords of that compiler (uPSUtils.pas) parsed
+	like functions, so they are listed here too. Only what is listed here exists in the game: there is no Random,
+	Format, Min/Max, Now, Sleep, IntToHex ... (the Utils object covers most of those).
+	
+	Routines are declared as procedural-type variables, like the fields of Actions/States/Utils, so the plugin's own
+	parser validates the file. Parameters typed "Variant" accept any type (Length works on strings and arrays, Inc on
+	every ordinal); "@generic" marks them.
+}
+
+type
+	{
+		Type code of a Variant value; compare with the var* constants.
+	}
+	TVarType = Word;
+
+	{
+		Runtime error codes for RaiseException / ExceptionType.
+	}
+	TIFException = (
+		ErNoError, erCannotImport, erInvalidType, ErInternalError, erInvalidHeader, erInvalidOpcode,
+		erInvalidOpcodeParameter, erNoMainProc, erOutOfGlobalVarsRange, erOutOfProcRange, ErOutOfRange,
+		erOutOfStackRange, ErTypeMismatch, erUnexpectedEof, erVersionError, ErDivideByZero, ErMathError,
+		erCouldNotCallProc, erOutofRecordRange, erOutOfMemory, erException, erNullPointerException,
+		erNullVariantError, erInterfaceNotSupported, erCustomError
+	);
+
+	{
+		Dynamic array of Variant values.
+	}
+	TVariantArray = array of Variant;
+
+const
+	varEmpty = 0;
+	varNull = 1;
+	varSmallInt = 2;
+	varInteger = 3;
+	varSingle = 4;
+	varDouble = 5;
+	varCurrency = 6;
+	varDate = 7;
+	varOleStr = 8;
+	varDispatch = 9;
+	varError = 10;
+	varBoolean = 11;
+	varVariant = 12;
+	varUnknown = 13;
+	varShortInt = 16;
+	varByte = 17;
+	varWord = 18;
+	varLongWord = 19;
+	varInt64 = 20;
+	varStrArg = 72;
+	varString = 256;
+	varAny = 257;
+	varUString = 258;
+	varTypeMask = 4095;
+	varArray = 8192;
+	varByRef = 16384;
+
+var
+	{
+		--- ordinals and arrays -----------------------------------------------------------------------------------------
+	}
+
+	{
+		Ordinal value of a char, enum, boolean or integer: Ord('A') = 65, Ord(utSerf) = 2.
+		@generic
+	}
+	Ord: function(X: Variant): Integer;
+
+	{
+		The character with the given code: Chr(65) = 'A'.
+	}
+	Chr: function(X: Integer): Char;
+
+	{
+		Increments an integer, enum or char variable by one. PascalScript has no second argument: use X := X + N.
+		@generic
+	}
+	Inc: procedure(var X: Variant);
+
+	{
+		Decrements an integer, enum or char variable by one. PascalScript has no second argument: use X := X - N.
+		@generic
+	}
+	Dec: procedure(var X: Variant);
+
+	{
+		The value following X in its ordinal type (enum, integer, char).
+		@generic
+	}
+	Succ: function(X: Variant): Variant;
+
+	{
+		The value preceding X in its ordinal type (enum, integer, char).
+		@generic
+	}
+	Pred: function(X: Variant): Variant;
+
+	{
+		Lowest value of an ordinal type or variable, or the first index of an array: Low(TKMUnitType), Low(MyArray).
+		@generic
+	}
+	Low: function(X: Variant): Variant;
+
+	{
+		Highest value of an ordinal type or variable, or the last index of an array: for I := 0 to High(MyArray) do ...
+		@generic
+	}
+	High: function(X: Variant): Variant;
+
+	{
+		Number of characters of a string or number of elements of an array.
+		@generic
+	}
+	Length: function(S: Variant): Integer;
+
+	{
+		Resizes a dynamic array (or string) to NewLength elements; new elements are zero / empty.
+		@generic
+	}
+	SetLength: procedure(var S: Variant; NewLength: Integer);
+
+	{
+		Number of elements of a dynamic array (same as Length for arrays).
+		@generic
+	}
+	GetArrayLength: function(Arr: Variant): Integer;
+
+	{
+		Resizes a dynamic array to Count elements (same as SetLength for arrays).
+		@generic
+	}
+	SetArrayLength: procedure(var Arr: Variant; Count: Integer);
+
+	{
+		Adds M to the set S: Include(Types, utSerf) is Types := Types + [utSerf].
+		@generic
+	}
+	Include: procedure(var S: Variant; M: Variant);
+
+	{
+		Removes M from the set S: Exclude(Types, utSerf) is Types := Types - [utSerf].
+		@generic
+	}
+	Exclude: procedure(var S: Variant; M: Variant);
+
+	{
+		Size in bytes of a variable or type.
+		@generic
+	}
+	SizeOf: function(Data: Variant): Integer;
+
+	{
+		True when a procedural variable (or other pointer-like value) has been assigned.
+		@generic
+	}
+	Assigned: function(P: Variant): Boolean;
+
+	{
+		--- strings -----------------------------------------------------------------------------------------------------
+	}
+
+	{
+		Converts an integer to its decimal text.
+	}
+	IntToStr: function(I: Int64): String;
+
+	{
+		Parses a decimal (or $hex) integer; raises a runtime error for invalid text (see StrToIntDef).
+	}
+	StrToInt: function(S: String): LongInt;
+
+	{
+		Parses an integer, returning Def when the text is not a number.
+	}
+	StrToIntDef: function(S: String; Def: LongInt): LongInt;
+
+	{
+		Converts an Int64 to text.
+	}
+	Int64ToStr: function(I: Int64): String;
+
+	{
+		Parses an Int64; raises a runtime error for invalid text.
+	}
+	StrToInt64: function(S: String): Int64;
+
+	{
+		Parses an Int64, returning Def when the text is not a number.
+	}
+	StrToInt64Def: function(S: String; Def: Int64): Int64;
+
+	{
+		Parses a floating point number (decimal separator of the system locale).
+	}
+	StrToFloat: function(S: String): Extended;
+
+	{
+		Converts a floating point number to text.
+	}
+	FloatToStr: function(E: Extended): String;
+
+	{
+		Substring of S: iCount characters starting at the 1-based position iFrom. Strings only (not arrays).
+	}
+	Copy: function(S: AnyString; iFrom, iCount: LongInt): AnyString;
+
+	{
+		1-based position of SubStr in S, 0 when not found. Case-sensitive.
+	}
+	Pos: function(SubStr, S: AnyString): LongInt;
+
+	{
+		Removes iCount characters from S starting at the 1-based position iFrom.
+	}
+	Delete: procedure(var S: AnyString; iFrom, iCount: LongInt);
+
+	{
+		Inserts S into S2 at the 1-based position iPos.
+	}
+	Insert: procedure(S: AnyString; var S2: AnyString; iPos: LongInt);
+
+	{
+		Character at the 1-based position I of S (same as S[I]).
+	}
+	StrGet: function(var S: String; I: Integer): Char;
+
+	{
+		Character at the 1-based position I of S, for string expressions that are not variables.
+	}
+	StrGet2: function(S: String; I: Integer): Char;
+
+	{
+		Replaces the character at the 1-based position I of S with C (same as S[I] := C).
+	}
+	StrSet: procedure(C: Char; I: Integer; var S: String);
+
+	{
+		Character at the 1-based position I of a wide string.
+	}
+	WStrGet: function(var S: AnyString; I: Integer): WideChar;
+
+	{
+		Replaces the character at the 1-based position I of a wide string.
+	}
+	WStrSet: procedure(C: AnyString; I: Integer; var S: AnyString);
+
+	{
+		Upper-cases the ASCII letters of S.
+	}
+	UpperCase: function(S: AnyString): AnyString;
+
+	{
+		Lower-cases the ASCII letters of S.
+	}
+	LowerCase: function(S: AnyString): AnyString;
+
+	{
+		Upper-cases S including accented letters.
+	}
+	AnsiUpperCase: function(S: String): String;
+
+	{
+		Lower-cases S including accented letters.
+	}
+	AnsiLowerCase: function(S: String): String;
+
+	{
+		Removes leading and trailing spaces and control characters.
+	}
+	Trim: function(S: AnyString): AnyString;
+
+	{
+		Pads S with spaces on the left to at least I characters.
+	}
+	PadL: function(S: AnyString; I: LongInt): AnyString;
+
+	{
+		Pads S with spaces on the right to at least I characters.
+	}
+	PadR: function(S: AnyString; I: LongInt): AnyString;
+
+	{
+		Pads S with zeros on the left to at least I characters.
+	}
+	PadZ: function(S: AnyString; I: LongInt): AnyString;
+
+	{
+		A string of I copies of the character C.
+	}
+	Replicate: function(C: Char; I: LongInt): String;
+
+	{
+		A string of I copies of the character C.
+	}
+	StringOfChar: function(C: Char; I: LongInt): String;
+
+	{
+		--- numbers -----------------------------------------------------------------------------------------------------
+	}
+
+	{
+		Sine of an angle in radians.
+	}
+	Sin: function(E: Extended): Extended;
+
+	{
+		Cosine of an angle in radians.
+	}
+	Cos: function(E: Extended): Extended;
+
+	{
+		Square root.
+	}
+	Sqrt: function(E: Extended): Extended;
+
+	{
+		Nearest integer (halves round to even).
+	}
+	Round: function(E: Extended): LongInt;
+
+	{
+		Integer part, rounding towards zero.
+	}
+	Trunc: function(E: Extended): LongInt;
+
+	{
+		Integer part as a floating point value.
+	}
+	Int: function(E: Extended): Extended;
+
+	{
+		3.14159...
+	}
+	Pi: function: Extended;
+
+	{
+		Absolute value. The result is a floating point number: for integers use Utils.AbsI.
+	}
+	Abs: function(E: Extended): Extended;
+
+	{
+		--- variants ----------------------------------------------------------------------------------------------------
+	}
+
+	{
+		The unassigned Variant value.
+	}
+	Unassigned: function: Variant;
+
+	{
+		The Null Variant value.
+	}
+	Null: function: Variant;
+
+	{
+		True when V is unassigned.
+	}
+	VarIsEmpty: function(const V: Variant): Boolean;
+
+	{
+		True when V is unassigned or Null.
+	}
+	VarIsClear: function(const V: Variant): Boolean;
+
+	{
+		True when V is Null.
+	}
+	VarIsNull: function(const V: Variant): Boolean;
+
+	{
+		Type code of V; compare with the var* constants.
+	}
+	VarType: function(const V: Variant): TVarType;
+
+	{
+		Element I of a Variant holding an array.
+	}
+	VarArrayGet: function(var S: Variant; I: Integer): Variant;
+
+	{
+		Sets element I of a Variant holding an array.
+	}
+	VarArraySet: procedure(C: Variant; I: Integer; var S: Variant);
+
+	{
+		--- exceptions --------------------------------------------------------------------------------------------------
+	}
+
+	{
+		Stops the script with a runtime error of the given kind and message.
+	}
+	RaiseException: procedure(Ex: TIFException; Param: String);
+
+	{
+		Re-raises the last runtime error.
+	}
+	RaiseLastException: procedure;
+
+	{
+		Kind of the last runtime error.
+	}
+	ExceptionType: function: TIFException;
+
+	{
+		Message of the last runtime error.
+	}
+	ExceptionParam: function: String;
+
+	{
+		Procedure number where the last runtime error happened.
+	}
+	ExceptionProc: function: Cardinal;
+
+	{
+		Byte code position of the last runtime error.
+	}
+	ExceptionPos: function: Cardinal;
+
+	{
+		Text for a runtime error kind and message.
+	}
+	ExceptionToString: function(Er: TIFException; Param: String): String;

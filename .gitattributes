@@ -1,0 +1,7 @@
+* text=auto
+
+gradlew text eol=lf
+*.bat text eol=crlf
+
+# raw wiki pages downloaded by tools/generate_stubs.py; keep them byte-exact so --offline reproduces the stubs
+tools/wiki-cache/*.md -text

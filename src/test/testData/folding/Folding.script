@@ -1,0 +1,42 @@
+<fold text='{ ... }'>{ header
+  comment }</fold>
+<fold text='{$IFNDEF x} ... {$ENDIF}'>{$IFNDEF x}
+{$DEFINE x}
+<fold text='type ...'>type
+  TRec = <fold text='record ... end'>record
+    A: Integer;
+  end</fold>;</fold>
+{$ENDIF}</fold>
+<fold text='var ...'>var
+  A, B: Integer;
+  C: Integer;</fold>
+const D = 1;
+<fold text='procedure P ...'>procedure P;
+<fold text='begin ... end'>begin
+  <fold text='case ... end'>case A of
+    1: Exit;
+  end</fold>;
+  <fold text='case ... end'>case A of
+    1: Exit;
+    2: Exit;
+  end</fold>;
+  <fold text='for ... do ...'>for A := 0 to 3 do
+    Inc(B)</fold>;
+  for A := 0 to 3 do <fold text='begin ... end'>begin
+    Inc(B);
+  end</fold>;
+  <fold text='while ... do ...'>while A > 0 do
+  <fold text='begin ... end'>begin
+    Dec(A);
+  end</fold></fold>;
+  <fold text='repeat ... until ...'>repeat
+    Inc(A);
+  until A > 3</fold>;
+  if A = 1 then <fold text='begin ... end'>begin
+    Exit;
+  end</fold>;
+end</fold>;</fold>
+<fold text='function F(...) ...'>function F(a: Integer): Boolean;
+<fold text='begin ... end'>begin
+  Result := a > 1;
+end</fold>;</fold>

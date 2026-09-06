@@ -1,0 +1,1 @@
+<html><body>Reports scripts that are included from more than one place but are not wrapped in the include guard idiom <code>{$IFNDEF x} {$DEFINE x} ... {$ENDIF}</code>. Without it, two includers ending up in the same compilation unit duplicate every declaration. The quick fix adds the guard.</body></html>

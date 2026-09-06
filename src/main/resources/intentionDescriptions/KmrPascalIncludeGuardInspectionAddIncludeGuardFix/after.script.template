@@ -1,0 +1,5 @@
+{$IFNDEF sharedScript}
+{$DEFINE sharedScript}
+
+var X: Integer;
+{$ENDIF}

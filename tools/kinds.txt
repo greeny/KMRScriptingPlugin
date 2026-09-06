@@ -1,0 +1,75 @@
+# Kinds ("fake types"): what integer parameters, results and record fields mean for the game (unit ID, hand index,
+# X coordinate, ...). Each kind is declared as a hidden alias type in Types.script; members get "@kind" doc tags.
+# Read by generate_stubs.py. Lines starting with "#" are comments.
+#
+#   kind <Alias>: <underlying>; <policy>; <label>[; prefer <EnumType>]; <description>
+#       declares an alias; policy = id | index | coordinate | legacy-id | count
+#   param <name> [<name>...] = <Alias>
+#       integer parameters / record fields with one of these names get "@kind <name> <kind>"; a name may be qualified
+#       with the member (Actions.GiveUnit.aType) or the record (TKMDefencePositionInfo.GroupID)
+#   return <Page.Member> = <Alias>
+#       the integer (or integer array) result of that member gets "@kind <kind>"
+#   return-comment <text> = <Alias>
+#       integer results whose wiki return comment equals <text> (case-insensitive) get the alias
+
+kind TKMUnitID: Integer; id; unit ID; Identifier of a unit (States.UnitAt, Actions.GiveUnitEx, event parameters). -1 = none.
+kind TKMHouseID: Integer; id; house ID; Identifier of a house (States.HouseAt, Actions.GiveHouseEx, event parameters). -1 = none.
+kind TKMGroupID: Integer; id; group ID; Identifier of a group of warriors (States.GroupAt, Actions.GiveGroupEx). -1 = none.
+kind TKMHandIndex: Integer; index; hand index; Index of a hand (player), 0-based. -1 = none / all players, depending on the function.
+kind TKMCoordX: Integer; coordinate; X coordinate; X (column) coordinate of a map tile.
+kind TKMCoordY: Integer; coordinate; Y coordinate; Y (row) coordinate of a map tile.
+kind TKMUnitTypeID: Integer; legacy-id; unit type id; prefer TKMUnitType; Integer unit type of the old API. Newer functions take TKMUnitType instead.
+kind TKMHouseTypeID: Integer; legacy-id; house type id; prefer TKMHouseType; Integer house type of the old API. Newer functions take TKMHouseType instead.
+kind TKMWareTypeID: Integer; legacy-id; ware type id; prefer TKMWareType; Integer ware type of the old API. Newer functions take TKMWareType instead.
+kind TKMGroupTypeID: Integer; legacy-id; group type id; prefer TKMGroupType; Integer group type of the old API (0 melee, 1 anti-horse, 2 ranged, 3 mounted). Newer functions take TKMGroupType instead.
+kind TKMDirectionID: Integer; legacy-id; direction id; prefer TKMDirection; Integer direction of the old API (0..7). Newer functions take TKMDirection instead.
+kind TKMTicks: Integer; count; tick count; Number of game ticks (10 per second at normal speed): game time, delays, hunger levels.
+
+# ---------------------------------------------------------------------------------------------------------------------
+# parameters and record fields
+# ---------------------------------------------------------------------------------------------------------------------
+
+param aUnitID aUnit aUnitUID aAttacker = TKMUnitID
+param aHouseID aHouse aMarketID aMarket aBarracks = TKMHouseID
+param aGroupID aGroup aGroup1 aGroup2 aDestGroupID aNewGroup = TKMGroupID
+param TKMDefencePositionInfo.GroupID = TKMGroupID
+param aHand aHand1 aHand2 aHandIndex aPlayer aOwner aKillerOwner aDestroyerIndex = TKMHandIndex
+param X aX X1 X2 aOldX aNewX aToX aFromX aXMin aXMax aFromTileX aToTileX aLeft aRight = TKMCoordX
+param Y aY Y1 Y2 aOldY aNewY aToY aFromY aYMin aYMax aFromTileY aToTileY aTop aBottom = TKMCoordY
+param aUnitType Actions.GiveUnit.aType Actions.GiveAnimal.aType Actions.UnitBlock.aType = TKMUnitTypeID
+param aHouseType = TKMHouseTypeID
+param aWareType aResType aResource aRes aWareFrom aWareTo = TKMWareTypeID
+param Actions.GiveWares.aType Actions.GiveWeapons.aType Actions.HouseAddWaresTo.aType Actions.HouseTakeWaresFrom.aType = TKMWareTypeID
+param Actions.MarketSetTrade.aFrom Actions.MarketSetTrade.aTo = TKMWareTypeID
+param aGroupType Actions.AIGroupsFormationSet.aType States.AIGroupsFormationGet.aType = TKMGroupTypeID
+param aDir aDirection = TKMDirectionID
+param aDelay Duration aPeacetime aHungerLevel aTicks = TKMTicks
+
+# ---------------------------------------------------------------------------------------------------------------------
+# results
+# ---------------------------------------------------------------------------------------------------------------------
+
+return-comment Unit ID = TKMUnitID
+return-comment House ID = TKMHouseID
+return-comment HouseId, where unit is placed = TKMHouseID
+return-comment Group ID = TKMGroupID
+return-comment Player ID = TKMHandIndex
+return-comment tile owner ID = TKMHandIndex
+return-comment X coordinate = TKMCoordX
+return-comment Y coordinate = TKMCoordY
+return-comment Unit type = TKMUnitTypeID
+return-comment House type = TKMHouseTypeID
+return-comment Ware type = TKMWareTypeID
+return-comment Direction (0..7) = TKMDirectionID
+return-comment Ticks (~10 per second) = TKMTicks
+return-comment game ticks = TKMTicks
+return-comment Hunger in ticks = TKMTicks
+return-comment Hunger level = TKMTicks
+return-comment Array of unit IDs = TKMUnitID
+return-comment Array of house IDs = TKMHouseID
+return-comment Array of group IDs = TKMGroupID
+
+return Actions.GiveAnimal Actions.GiveAnimalEx Actions.GiveUnit Actions.GiveUnitEx States.HouseWorker = TKMUnitID
+return Actions.GiveHouse Actions.GiveHouseEx Actions.GiveHouseSite Actions.GiveHouseSiteEx = TKMHouseID
+return Actions.GiveGroup Actions.GiveGroupEx Actions.GroupOrderSplit Actions.GroupOrderSplitUnit = TKMGroupID
+return States.GroupType = TKMGroupTypeID
