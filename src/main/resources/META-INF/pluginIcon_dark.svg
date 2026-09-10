@@ -2,17 +2,13 @@
 <svg id="Vrstva_1" data-name="Vrstva 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
   <defs>
     <style>
-      .cls-1 {
+      .cls-1, .cls-2, .cls-3 {
         fill: #fff;
       }
 
       .cls-2 {
         font-family: Georgia, Georgia;
         font-size: 16.88px;
-      }
-
-      .cls-2, .cls-3 {
-        fill: #010101;
       }
 
       .cls-3 {
@@ -22,11 +18,11 @@
       }
     </style>
   </defs>
-  <rect class="cls-1" x="1.92" y="2" width="36" height="36"/>
+  <rect x="2.06" y="2" width="36" height="36"/>
   <g>
-    <polygon points="15.96 22.66 14.06 23.26 5.22 22.65 14.06 22.05 15.96 22.66"/>
-    <path d="M26.14,23.23c-.6-.02-1.33-.35-1.98-.59l1.85-.58,7.57.45,1.16.03v.2s-8.6.49-8.6.49Z"/>
-    <rect x="19.06" y="21.67" width="1.97" height="1.97" transform="translate(-10.15 20.76) rotate(-44.9)"/>
+    <polygon class="cls-1" points="16.11 22.66 14.21 23.26 5.36 22.65 14.21 22.05 16.11 22.66"/>
+    <path class="cls-1" d="M26.28,23.23c-.6-.02-1.33-.35-1.98-.59l1.85-.58,7.57.45,1.16.03v.2s-8.6.49-8.6.49Z"/>
+    <rect class="cls-1" x="19.2" y="21.67" width="1.97" height="1.97" transform="translate(-10.1 20.86) rotate(-44.9)"/>
     <text class="cls-3" transform="translate(2.8 34.38)"><tspan x="0" y="0">Scripting</tspan></text>
     <text class="cls-2" transform="translate(2.5 17.47)"><tspan x="0" y="0">KaM</tspan></text>
   </g>
