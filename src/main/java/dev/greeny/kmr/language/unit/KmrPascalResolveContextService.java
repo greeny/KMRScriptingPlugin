@@ -1,6 +1,5 @@
 package dev.greeny.kmr.language.unit;
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
@@ -14,9 +13,11 @@ import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.PsiModificationTracker;
 import com.intellij.ui.EditorNotifications;
+import com.intellij.util.FileContentUtil;
 import dev.greeny.kmr.language.psi.KmrPascalFile;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -74,7 +75,19 @@ public final class KmrPascalResolveContextService
 		KmrPascalProjectSettings.getInstance(project).setResolveContext(file, entryPoint);
 		PsiManager.getInstance(project).dropPsiCaches();
 		EditorNotifications.getInstance(project).updateAllNotifications();
-		DaemonCodeAnalyzer.getInstance(project).restart();
+		reanalyseOpenFiles(project);
+	}
+
+	/**
+	 * Drops cached PSI and re-runs highlighting for every open file. Used after a change that alters how files
+	 * resolve (game version, entry point context); files opened later pick the change up on their own.
+	 */
+	public static void reanalyseOpenFiles(@NotNull Project project)
+	{
+		PsiManager.getInstance(project).dropPsiCaches();
+		// reparsing the open files of the project re-runs highlighting for them (the same thing language level
+		// switches in other language plugins do); DaemonCodeAnalyzer.restart() is deprecated
+		FileContentUtil.reparseFiles(project, Collections.emptyList(), true);
 	}
 
 	@NotNull

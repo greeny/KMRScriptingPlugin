@@ -2,6 +2,7 @@ package dev.greeny.kmr.language.editor;
 
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FileTypeIndex;
@@ -14,6 +15,7 @@ import dev.greeny.kmr.language.KmrPascalFileType;
 import dev.greeny.kmr.language.stubs.KmrPascalStubLibrary;
 import dev.greeny.kmr.language.unit.KmrPascalEntryPoints;
 import dev.greeny.kmr.language.unit.KmrPascalProjectSettings;
+import dev.greeny.kmr.language.unit.KmrPascalResolveContextService;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -103,8 +105,7 @@ public class KmrPascalSettingsConfigurable implements Configurable
 			String value = rowValue(row);
 			settings.setStubVersionOverride(entryPoints.get(row), DEFAULT_ROW_VALUE.equals(value) ? null : value);
 		}
-		com.intellij.psi.PsiManager.getInstance(project).dropPsiCaches();
-		com.intellij.codeInsight.daemon.DaemonCodeAnalyzer.getInstance(project).restart();
+		KmrPascalResolveContextService.reanalyseOpenFiles(project);
 	}
 
 	@Override
@@ -148,7 +149,7 @@ public class KmrPascalSettingsConfigurable implements Configurable
 	@NotNull
 	private String relativePath(@NotNull VirtualFile file)
 	{
-		VirtualFile base = project.getBaseDir();
+		VirtualFile base = ProjectUtil.guessProjectDir(project);
 		String relative = base == null ? null : VfsUtilCore.getRelativePath(file, base);
 		return relative == null ? file.getPath() : relative;
 	}

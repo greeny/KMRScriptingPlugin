@@ -76,6 +76,209 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 		}
 	}
 
+	public void testDeprecatedCallIsRewrittenToExVariant()
+	{
+		// numbers and named constants become enum members, unchanged parameters keep their text and formatting
+		assertFixed("Replace with 'GiveUnitEx'", """
+			const UT_SERF = 0; DIR_DOWN = 4;
+			procedure OnTick;
+			var U: Integer;
+			begin
+			  U := Actions.Give<caret>Unit(0, UT_SERF,
+			    10, 20, DIR_DOWN);
+			  Actions.GiveWares(0, 1, 5);
+			end;
+			""", """
+			const UT_SERF = 0; DIR_DOWN = 4;
+			procedure OnTick;
+			var U: Integer;
+			begin
+			  U := Actions.GiveUnitEx(0, utSerf,
+			    10, 20, dirS);
+			  Actions.GiveWares(0, 1, 5);
+			end;
+			""");
+		assertFixed("Replace with 'MarketSetTradeEx'", "procedure OnTick; begin Actions.Market<caret>SetTrade(1, (27), 8, 1); end;",
+			"procedure OnTick; begin Actions.MarketSetTradeEx(1, wtFish, wtWine, 1); end;");
+		// -1 is "any" for the Closest functions
+		assertFixed("Replace with 'ClosestUnitEx'", "procedure OnTick; begin States.Closest<caret>Unit(0, 1, 1, -1); end;",
+			"procedure OnTick; begin States.ClosestUnitEx(0, 1, 1, utAny); end;");
+		// a TByteSet becomes a set of the enum
+		assertFixed("Replace with 'ClosestGroupMultipleTypesEx'", "procedure OnTick; begin States.Closest<caret>GroupMultipleTypes(0, 1, 1, [0, 2]); end;",
+			"procedure OnTick; begin States.ClosestGroupMultipleTypesEx(0, 1, 1, [gtMelee, gtRanged]); end;");
+		// the Ex variants with a different shape whose old behaviour is expressible
+		assertFixed("Replace with 'HouseAddBuildingProgressEx'", "procedure OnTick; begin Actions.HouseAdd<caret>BuildingProgress(States.HouseAt(1, 1)); end;",
+			"procedure OnTick; begin Actions.HouseAddBuildingProgressEx(States.HouseAt(1, 1), 1); end;");
+		assertFixed("Replace with 'GiveHouseSiteEx'", "procedure OnTick; begin Actions.Give<caret>HouseSite(0, 11, 1, 1, False); end;",
+			"procedure OnTick; begin Actions.GiveHouseSiteEx(0, htStore, 1, 1, 0, 0); end;");
+	}
+
+	public void testDeprecatedResultIsRewrittenWithItsConstants()
+	{
+		assertFixed("Replace with 'HouseTypeEx'", """
+			procedure OnTick;
+			var H: Integer;
+			begin
+			  if 11 = States.House<caret>Type(H) then
+			    H := 0;
+			end;
+			""", """
+			procedure OnTick;
+			var H: Integer;
+			begin
+			  if htStore = States.HouseTypeEx(H) then
+			    H := 0;
+			end;
+			""");
+		assertFixed("Replace with 'UnitTypeEx'", """
+			procedure OnTick;
+			var U: Integer;
+			begin
+			  case States.Unit<caret>Type(U) of
+			    0, 13: U := 1;
+			    -1: U := 2;
+			    else U := 3;
+			  end;
+			end;
+			""", """
+			procedure OnTick;
+			var U: Integer;
+			begin
+			  case States.UnitTypeEx(U) of
+			    utSerf, utRecruit: U := 1;
+			    utNone: U := 2;
+			    else U := 3;
+			  end;
+			end;
+			""");
+		// a legacy result feeding a legacy call: the fix on either rewrites both
+		assertFixed("Replace with 'GiveUnitEx'", "procedure OnTick; var U: Integer; begin U := Actions.GiveUnit(0, States.Unit<caret>Type(U), 1, 1, 0); end;",
+			"procedure OnTick; var U: Integer; begin U := Actions.GiveUnitEx(0, States.UnitTypeEx(U), 1, 1, dirN); end;");
+	}
+
+	public void testDeprecatedCallWithoutExactMigrationHasNoFix()
+	{
+		assertNoFix("Replace with 'GiveUnitEx'", "procedure OnTick; var T: Integer; begin Actions.Give<caret>Unit(0, T, 1, 1, 0); end;");
+		assertNoFix("Replace with 'GiveUnitEx'", "procedure OnTick; begin Actions.Give<caret>Unit(0, 28, 1, 1, 0); end;");
+		assertNoFix("Replace with 'GiveUnitEx'", "procedure OnTick; begin Actions.Give<caret>Unit(0, -1, 1, 1, 0); end;");
+		assertNoFix("Replace with 'GiveHouseSiteEx'", "procedure OnTick; begin Actions.Give<caret>HouseSite(0, 11, 1, 1, True); end;");
+		assertNoFix("Replace with 'HouseAddBuildingMaterialsEx'", "procedure OnTick; begin Actions.HouseAdd<caret>BuildingMaterials(1); end;");
+		assertNoFix("Replace with 'AIDefencePositionAddEx'", "procedure OnTick; begin Actions.AIDefence<caret>PositionAdd(0, 1, 1, 0, 0, 5, 0); end;");
+		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin if States.Unit<caret>Type(U) > 14 then U := 0; end;");
+		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin U := States.Unit<caret>Type(U); end;");
+		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin case States.Unit<caret>Type(U) of 0..13: U := 1; end; end;");
+	}
+
+	private void assertFixed(String fixName, String before, String after)
+	{
+		myFixture.configureByText("a.script", before);
+		myFixture.launchAction(myFixture.findSingleIntention(fixName));
+		myFixture.checkResult(after);
+	}
+
+	private void assertNoFix(String fixName, String text)
+	{
+		myFixture.configureByText("a.script", text);
+		assertEmpty(myFixture.filterAvailableIntentions(fixName));
+	}
+
+	public void testDeprecatedEventHandlersAreReported()
+	{
+		check("""
+			procedure <weak_warning descr="'OnUnitAfterDied' is deprecated: Use OnUnitAfterDiedEx instead">OnUnitAfterDied</weak_warning>(aUnitType: Integer; aOwner: Integer; aX, aY: Integer);
+			begin
+			  if (aUnitType = 14) and (aX = aY) then Actions.ShowMsg(aOwner, 'x');
+			end;
+			procedure MyTrade(aMarket: Integer; aWareFrom: Integer; aWareTo: Integer);
+			begin
+			  Actions.ShowMsg(0, IntToStr(aMarket + aWareFrom + aWareTo));
+			end;
+			{$EVENT <weak_warning descr="'evtMarketTrade' is deprecated: Use evtMarketTradeEx instead">evtMarketTrade</weak_warning>:MyTrade}
+			procedure OnUnitAfterDiedEx(aUnitType: TKMUnitType; aOwner: Integer; aX, aY: Integer);
+			begin
+			  if (aUnitType = utSerf) and (aX = aY) then Actions.ShowMsg(aOwner, 'x');
+			end;
+			""");
+	}
+
+	public void testDeprecatedEventHandlerIsRewrittenToExVariant()
+	{
+		assertFixed("Replace with 'OnUnitAfterDiedEx'", """
+			const UT_MILITIA = 14;
+			procedure On<caret>UnitAfterDied(aUnitType: Integer; aOwner, aX, aY: Integer);
+			begin
+			  if (aUnitType = UT_MILITIA) or (aUnitType <> -1) then
+			    Actions.GiveUnit(aOwner, aUnitType, aX, aY, 0);
+			  if aUnitType in [0, 1] then
+			    case aUnitType of
+			      0: Actions.ShowMsg(aOwner, 'serf');
+			      1, 2: Actions.ShowMsg(aOwner, 'other');
+			    end;
+			end;
+			""", """
+			const UT_MILITIA = 14;
+			procedure OnUnitAfterDiedEx(aUnitType: TKMUnitType; aOwner, aX, aY: Integer);
+			begin
+			  if (aUnitType = utMilitia) or (aUnitType <> utNone) then
+			    Actions.GiveUnitEx(aOwner, aUnitType, aX, aY, dirN);
+			  if aUnitType in [utSerf, utWoodcutter] then
+			    case aUnitType of
+			      utSerf: Actions.ShowMsg(aOwner, 'serf');
+			      utWoodcutter, utMiner: Actions.ShowMsg(aOwner, 'other');
+			    end;
+			end;
+			""");
+		// registered by directive: the directive moves to the Ex event, the handler keeps its name; groups are split
+		assertFixed("Replace with 'OnHousePlanPlacedEx'", """
+			{$EVENT evtHouse<caret>PlanPlaced:MyPlan}
+			procedure MyPlan(aPlayer, aX, aY, aHouseType: Integer);
+			begin
+			  if aHouseType = 11 then Actions.ShowMsg(aPlayer, 'store');
+			end;
+			""", """
+			{$EVENT evtHousePlanPlacedEx:MyPlan}
+			procedure MyPlan(aPlayer, aX, aY: Integer; aHouseType: TKMHouseType);
+			begin
+			  if aHouseType = htStore then Actions.ShowMsg(aPlayer, 'store');
+			end;
+			""");
+		// two enum parameters of one event
+		assertFixed("Replace with 'OnMarketTradeEx'", """
+			procedure On<caret>MarketTrade(aMarket, aWareFrom, aWareTo: Integer);
+			begin
+			  if (aWareFrom = 27) and (aWareTo <> 8) then Actions.MarketSetTrade(aMarket, aWareTo, aWareFrom, 1);
+			end;
+			""", """
+			procedure OnMarketTradeEx(aMarket: Integer; aWareFrom, aWareTo: TKMWareType);
+			begin
+			  if (aWareFrom = wtFish) and (aWareTo <> wtWine) then Actions.MarketSetTradeEx(aMarket, aWareTo, aWareFrom, 1);
+			end;
+			""");
+	}
+
+	public void testDeprecatedEventHandlerWithoutExactMigrationHasNoFix()
+	{
+		assertNoFix("Replace with 'OnUnitAfterDiedEx'", """
+			procedure On<caret>UnitAfterDied(aUnitType: Integer; aOwner, aX, aY: Integer);
+			begin
+			  Actions.ShowMsg(aOwner, IntToStr(aUnitType));
+			end;
+			""");
+		assertNoFix("Replace with 'OnUnitAfterDiedEx'", """
+			var Last: Integer;
+			procedure On<caret>UnitAfterDied(aUnitType: Integer; aOwner, aX, aY: Integer);
+			begin
+			  Last := aUnitType;
+			end;
+			""");
+		assertNoFix("Replace with 'OnUnitAfterDiedEx'", """
+			procedure On<caret>UnitAfterDied(aUnitType: Integer; aOwner, aX, aY: Integer);
+			begin
+			  if aUnitType > 13 then Actions.ShowMsg(aOwner, 'warrior');
+			end;
+			""");
+	}
+
 	public void testDeprecatedAndArgumentCount()
 	{
 		check("""
@@ -84,8 +287,8 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 			procedure Newer(<weak_warning descr="Unused parameter 'a'">a</weak_warning>: Integer); begin end;
 			procedure OnTick;
 			begin
-			  <warning descr="'Older' is deprecated: Use Newer">Older</warning>(1);
-			  Actions.<warning descr="'GiveUnit' is deprecated: Use GiveUnitEx instead">GiveUnit</warning>(0, 1, 1, 1, 0);
+			  <weak_warning descr="'Older' is deprecated: Use Newer">Older</weak_warning>(1);
+			  Actions.<weak_warning descr="'GiveUnit' is deprecated: Use GiveUnitEx instead">GiveUnit</weak_warning>(0, 1, 1, 1, 0);
 			  Newer(1);
 			  Newer<error descr="'Newer' expects 1 argument, got 2">(1, 2)</error>;
 			  <error descr="'Newer' expects 1 argument, got 0">Newer</error>;
@@ -134,6 +337,31 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 		myFixture.checkHighlighting(true, false, true);
 	}
 
+	public void testEventHandlerRegisteredMoreThanOnce()
+	{
+		check("""
+			procedure MyBuilt(aHouse: Integer); begin end;
+			procedure OnTick; begin end;
+			{$EVENT evtHouseBuilt:MyBuilt}
+			{$EVENT evtHouseBuilt:<error descr="Event 'evtHouseBuilt' already has the handler 'MyBuilt'">MyBuilt</error>}
+			{$EVENT evtHousePlanDigged:<warning descr="Procedure 'MyBuilt' is already the handler of 'evtHouseBuilt'">MyBuilt</warning>}
+			{$EVENT evtTick:<error descr="'OnTick' is the default handler of 'evtTick' and is registered by the game itself">OnTick</error>}
+			""");
+	}
+
+	public void testMissingEventHandlerIsCreated()
+	{
+		assertFixed("Create procedure 'MyBuilt'", """
+			{$EVENT evtHouseBuilt:My<caret>Built}
+			""", """
+			{$EVENT evtHouseBuilt:MyBuilt}
+
+			procedure MyBuilt(aHouse: Integer);
+			begin
+			end;
+			""");
+	}
+
 	public void testEventHandlerSignatureWithFix()
 	{
 		check("""
@@ -161,8 +389,9 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 			<error descr="{$ENDIF} without {$IFDEF}/{$IFNDEF}">{$ENDIF}</error>
 			{$EVENT evtHouseBuilt:<error descr="Procedure 'Missing' is not declared in the compilation unit">Missing</error>}
 			{$EVENT <error descr="Unknown event 'evtNope'">evtNope</error>:OnTick}
-			{$EVENT evtTick:OnTick}
+			{$EVENT evtTick:MyTick}
 			procedure OnTick; begin end;
+			procedure MyTick; begin end;
 			<error descr="Conditional directive is not closed by {$ENDIF} in this file">{$IFDEF x}</error>
 			var Y: Integer;
 			""");

@@ -2,6 +2,10 @@ package dev.greeny.kmr.language.editor;
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider;
 import com.intellij.lang.documentation.DocumentationMarkup;
+import com.intellij.openapi.editor.Document;
+import com.intellij.psi.PsiDocumentManager;
+import dev.greeny.kmr.language.flow.KmrFact;
+import dev.greeny.kmr.language.flow.KmrFlowAnalysis;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiDocCommentBase;
@@ -34,7 +38,8 @@ public class KmrPascalDocumentationProvider extends AbstractDocumentationProvide
 		if (!(element instanceof KmrPascalNamedElement)) {
 			return null;
 		}
-		return StringUtil.escapeXmlEntities(signature((KmrPascalNamedElement) element) + " [" + location(element) + "]");
+		String value = knownValue(originalElement);
+		return StringUtil.escapeXmlEntities(signature((KmrPascalNamedElement) element) + (value == null ? "" : " = " + value) + " [" + location(element) + "]");
 	}
 
 	@Override
@@ -59,6 +64,10 @@ public class KmrPascalDocumentationProvider extends AbstractDocumentationProvide
 		html.append(DocumentationMarkup.SECTIONS_START);
 		if (doc != null) {
 			appendTagSections(html, doc);
+		}
+		String value = knownValue(originalElement);
+		if (value != null) {
+			section(html, "Value here", StringUtil.escapeXmlEntities(value));
 		}
 		section(html, "Defined in", StringUtil.escapeXmlEntities(location(declaration)));
 		html.append(DocumentationMarkup.SECTIONS_END);
@@ -115,6 +124,33 @@ public class KmrPascalDocumentationProvider extends AbstractDocumentationProvide
 			value.append("<br>");
 		}
 		return value.toString();
+	}
+
+	/**
+	 * What the flow analysis knows about the referenced variable (or States query) where the documentation was asked
+	 * for: {@code True (from the condition on line 12)}; null when nothing is known.
+	 */
+	@Nullable
+	static String knownValue(@Nullable PsiElement originalElement)
+	{
+		KmrPascalReferenceExpression reference = PsiTreeUtil.getParentOfType(originalElement, KmrPascalReferenceExpression.class, false);
+		if (reference == null) {
+			return null;
+		}
+		KmrFlowAnalysis analysis = KmrFlowAnalysis.at(reference);
+		KmrFact fact = analysis == null ? null : analysis.valueOf(reference);
+		if (fact == null) {
+			return null;
+		}
+		String origin = "";
+		if (fact.origin != null && fact.origin.isValid()) {
+			Document document = PsiDocumentManager.getInstance(reference.getProject()).getDocument(reference.getContainingFile());
+			if (document != null) {
+				int line = document.getLineNumber(fact.origin.getTextOffset()) + 1;
+				origin = " (from the " + (fact.origin instanceof KmrPascalAssignment ? "assignment" : "condition") + " on line " + line + ")";
+			}
+		}
+		return fact.describe() + origin;
 	}
 
 	// ---------------------------------------------------------------------------------------------------------------

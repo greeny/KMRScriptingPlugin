@@ -26,14 +26,39 @@ anything the game accepts and the plugin flags (or the other way round).
 - Code completion (API members, your own declarations, keywords, event handler templates when you type
   `On...` at file level), parameter info (Ctrl+P), quick documentation (Ctrl+Q), parameter name
   hints in calls (`ShowMsg(aHand: 0, aText: 'Hi')`, hidden when the argument is named like the parameter).
+- Completion inside directives: `{$` offers every directive the game knows (`{$I}`, `{$INCLUDE}`,
+  `{$DEFINE}`, `{$UNDEF}`, `{$IFDEF}`, `{$IFNDEF}`, `{$ELSE}`, `{$ENDIF}`, `{$EVENT}`, `{$COMMAND}` /
+  `{$CMD}`, `{$CUSTOM_TH_TROOP_COST}`, `{$CUSTOM_MARKET_GOLD_PRICE_X}`), `{$EVENT ` the events of the
+  selected game version, and `{$EVENT evtHouseBuilt:` the procedures of the unit - those with the
+  event's signature first, without the ones that already handle an event.
 - Go to declaration, find usages and rename (case-insensitive, across includes).
-- **Inspections:** unresolved identifiers and members, deprecated members, wrong argument counts,
+- **Inspections:** unresolved identifiers and members, deprecated members and event handlers (with a fix that migrates exact
+  integer-id calls to the `Ex` variants), wrong argument counts,
   duplicate declarations across a unit, unused locals, wrong event handler signatures (with fix),
-  include and conditional directive problems, missing include guards (with fix), invalid statements,
+  include and conditional directive problems, an `{$EVENT}` naming a procedure the unit does not declare
+  (with a fix that creates it) or one that is already a handler of an event, missing include guards (with fix), invalid statements,
   statements without a `;` after them (the game accepts that, so it is a warning with a fix),
   `X := X + 1` that can be `Inc(X)` (with fix),
   type mismatches, and *kinds*: a house ID passed as a unit ID, swapped X/Y, arithmetic on IDs, a
   literal where an ID is expected, comparisons between different kinds.
+- **Known values.** The plugin follows what conditions and assignments say about variables, record fields,
+  constant-indexed elements and `States` queries through a routine, the way the PHP plugin does: inside
+  `if A = True then`, a nested `if A = False then` is reported as always false; after `if not Ok then exit;`,
+  `Ok` is known to be true; `if Found then` right after `Found := False` is always false; `X < 3` inside
+  `if X > 5` can never hold. Hover a variable (or quick documentation, Ctrl+Q) to see the value known at
+  that point and where it comes from. Facts are forgotten where a write, a loop or a call with unknown
+  effects may change them.
+- **States queries are stable within a tick.** A script runs to completion inside one game tick and only
+  `Actions` change the game, so `States.UnitOwner(U)` returns the same value until an `Actions` member (or
+  a routine of the script, which might call one) runs or `U` changes. A second `if States.UnitOwner(U) = 3`
+  is therefore "always true", and a repeated query is a weak warning with an *Extract to variable* fix that
+  stores the first result in a local. `KaMRandom` and friends are excluded; `Utils` and the standard
+  routines are pure functions of their arguments.
+- **Refactorings:** Introduce Variable (Ctrl+Alt+V) with occurrence replacement and in-place naming,
+  wrapping a one-liner branch into `begin`/`end` when needed; Introduce Constant (Ctrl+Alt+C) into the
+  `const` block before the declaration; Extract Method (Ctrl+Alt+M) turns selected statements into a
+  procedure (locals read become parameters, locals changed and used afterwards `var` parameters, locals
+  only the selection uses move along) or an expression into a function.
 - Reformat Code with a Code Style page, live templates (`proc`, `func`, `if`, `ifb`, `ife`, `for`,
   `while`, `repeat`, `case`, `guard`, `inc`, `msg`, `tick`), *New | KMR Script*.
 

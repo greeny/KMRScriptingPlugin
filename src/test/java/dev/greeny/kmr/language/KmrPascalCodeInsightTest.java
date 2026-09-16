@@ -122,6 +122,70 @@ public class KmrPascalCodeInsightTest extends BasePlatformTestCase
 		myFixture.checkResult("procedure OnMissionStart;\nbegin\n  <caret>\nend;");
 	}
 
+	public void testDirectiveNameCompletion()
+	{
+		List<String> items = complete("{$<caret>}");
+		assertContainsElements(items, "I", "INCLUDE", "DEFINE", "UNDEF", "IFDEF", "IFNDEF", "ELSE", "ENDIF", "EVENT", "COMMAND", "CMD",
+			"CUSTOM_TH_TROOP_COST", "CUSTOM_MARKET_GOLD_PRICE_X");
+		assertDoesntContain(complete("{$I<caret>}"), "DEFINE", "EVENT");
+
+		// a directive with an argument gets the separating space, one without is closed and left behind
+		myFixture.configureByText("a.script", "{$EV<caret>}");
+		myFixture.completeBasic();
+		myFixture.checkResult("{$EVENT <caret>}");
+		myFixture.configureByText("a.script", "{$ENDI<caret>");
+		myFixture.completeBasic();
+		myFixture.checkResult("{$ENDIF}<caret>");
+		// an unterminated directive is closed as well
+		myFixture.configureByText("a.script", "{$INCLUD<caret>");
+		myFixture.completeBasic();
+		myFixture.checkResult("{$INCLUDE <caret>}");
+	}
+
+	public void testEventNameCompletionInDirective()
+	{
+		List<String> items = complete("{$EVENT <caret>}");
+		assertContainsElements(items, "evtHouseBuilt", "evtMissionStart", "evtTick");
+		assertDoesntContain(items, "OnHouseBuilt", "procedure");
+
+		myFixture.configureByText("a.script", "{$EVENT evtHousePlanDig<caret>}");
+		myFixture.completeBasic();
+		myFixture.checkResult("{$EVENT evtHousePlanDigged:<caret>}");
+	}
+
+	public void testHandlerCompletionInDirective()
+	{
+		String unit = """
+			procedure MyBuilt(aHouse: Integer);
+			begin
+			end;
+			procedure Whatever(aText: String);
+			begin
+			end;
+			function Counter: Integer;
+			begin
+			  Result := 0;
+			end;
+			procedure OnTick;
+			begin
+			end;
+			""";
+		List<String> items = complete(unit + "{$EVENT evtHouseBuilt:<caret>}");
+		assertContainsElements(items, "MyBuilt", "Whatever");
+		// the signature of the event first; functions and procedures that already handle an event are not offered
+		assertTrue(items.toString(), items.indexOf("MyBuilt") < items.indexOf("Whatever"));
+		assertDoesntContain(items, "Counter", "OnTick");
+
+		// a procedure another directive already registered would be a duplicate for the game
+		assertDoesntContain(complete(unit + "{$EVENT evtHousePlanDigged:MyBuilt}\n{$EVENT evtHouseBuilt:<caret>}"), "MyBuilt");
+		// but the handler of the directive being edited is completable again
+		assertContainsElements(complete(unit + "{$EVENT evtHouseBuilt:MyBu<caret>ilt}"), "MyBuilt");
+
+		myFixture.configureByText("a.script", unit + "{$EVENT evtHouseBuilt:MyBui<caret>}");
+		myFixture.completeBasic();
+		myFixture.checkResult(unit + "{$EVENT evtHouseBuilt:MyBuilt}<caret>");
+	}
+
 	public void testTopLevelKeywordsAndLocalDeclarationKeywords()
 	{
 		assertContainsElements(complete("<caret>"), "procedure", "function", "var", "const", "type", "OnTick");

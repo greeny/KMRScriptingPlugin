@@ -5,7 +5,9 @@ import dev.greeny.kmr.language.psi.KmrPascalDocComment;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
+import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.SyntaxTraverser;
 import com.intellij.psi.util.CachedValue;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
@@ -14,12 +16,14 @@ import com.intellij.psi.util.PsiTreeUtil;
 import dev.greeny.kmr.language.psi.KmrPascalFieldIdentifier;
 import dev.greeny.kmr.language.psi.KmrPascalRecordType;
 import dev.greeny.kmr.language.psi.KmrPascalRoutineDeclaration;
+import dev.greeny.kmr.language.psi.KmrPascalTypes;
 import dev.greeny.kmr.language.unit.KmrPascalCompilationUnit;
 import dev.greeny.kmr.language.unit.KmrPascalDirective;
 import dev.greeny.kmr.language.unit.KmrPascalResolveContextService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +33,44 @@ public final class KmrPascalEvents
 {
 
 	private static final Key<CachedValue<List<KmrPascalEvent>>> KEY = Key.create("KmrPascalEvents");
+
+	/** One {@code {$EVENT evtX:Handler}} directive of a compilation unit. */
+	public static final class Registration
+	{
+		public final PsiComment comment;
+		public final KmrPascalDirective directive;
+		/** The event name half, empty when the directive has no argument. */
+		public final String eventName;
+		/** The handler procedure name half, empty when the directive has no ":". */
+		public final String handlerName;
+
+		private Registration(PsiComment comment, KmrPascalDirective directive)
+		{
+			this.comment = comment;
+			this.directive = directive;
+			this.eventName = directive.eventPart == null ? "" : directive.eventPart.name;
+			this.handlerName = directive.handlerPart == null ? "" : directive.handlerPart.name;
+		}
+	}
+
+	/** Every {$EVENT} directive of a unit, in the order the preprocessor reads them. */
+	@NotNull
+	public static List<Registration> registrations(@NotNull KmrPascalCompilationUnit unit)
+	{
+		List<Registration> result = new ArrayList<>();
+		for (KmrPascalCompilationUnit.Inclusion inclusion : unit.getInclusions()) {
+			for (PsiComment comment : SyntaxTraverser.psiTraverser(inclusion.file).filter(PsiComment.class)) {
+				if (comment.getNode().getElementType() != KmrPascalTypes.DIRECTIVE_EVENT) {
+					continue;
+				}
+				KmrPascalDirective directive = KmrPascalDirective.of(comment);
+				if (directive != null) {
+					result.add(new Registration(comment, directive));
+				}
+			}
+		}
+		return result;
+	}
 
 	private final Project project;
 
@@ -100,14 +142,9 @@ public final class KmrPascalEvents
 			return byName;
 		}
 		KmrPascalCompilationUnit unit = KmrPascalResolveContextService.getInstance(project).getUnitFor(file.getOriginalFile());
-		for (KmrPascalCompilationUnit.Inclusion inclusion : unit.getInclusions()) {
-			for (KmrPascalDirective directive : KmrPascalDirective.collect(inclusion.file)) {
-				if (directive.kind == KmrPascalDirective.Kind.EVENT) {
-					int colon = directive.argument.indexOf(':');
-					if (colon >= 0 && directive.argument.substring(colon + 1).trim().equalsIgnoreCase(name)) {
-						return findByEventName(version, directive.argument.substring(0, colon).trim());
-					}
-				}
+		for (Registration registration : registrations(unit)) {
+			if (registration.handlerName.equalsIgnoreCase(name)) {
+				return findByEventName(version, registration.eventName);
 			}
 		}
 		return null;

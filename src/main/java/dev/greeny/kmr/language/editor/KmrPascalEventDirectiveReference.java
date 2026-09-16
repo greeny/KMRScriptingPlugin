@@ -34,23 +34,15 @@ public class KmrPascalEventDirectiveReference extends PsiReferenceBase<PsiCommen
 	@NotNull
 	public static PsiReference[] create(@NotNull PsiComment element, @NotNull KmrPascalDirective directive)
 	{
-		TextRange argumentRange = directive.argumentRange;
-		if (argumentRange == null) {
+		if (directive.eventPart == null) {
 			return PsiReference.EMPTY_ARRAY;
 		}
-		String argument = directive.argument;
-		int colon = argument.indexOf(':');
-		if (colon < 0) {
-			return new PsiReference[]{new KmrPascalEventDirectiveReference(element, argumentRange, argument.trim(), false)};
+		if (directive.handlerPart == null) {
+			return new PsiReference[]{new KmrPascalEventDirectiveReference(element, directive.eventPart.range, directive.eventPart.name, false)};
 		}
-		String eventName = argument.substring(0, colon).trim();
-		String handlerName = argument.substring(colon + 1).trim();
-		int start = argumentRange.getStartOffset();
-		TextRange eventRange = TextRange.create(start, start + colon);
-		TextRange handlerRange = TextRange.create(start + colon + 1, argumentRange.getEndOffset());
 		return new PsiReference[]{
-			new KmrPascalEventDirectiveReference(element, trim(eventRange, element.getText()), eventName, false),
-			new KmrPascalEventDirectiveReference(element, trim(handlerRange, element.getText()), handlerName, true),
+			new KmrPascalEventDirectiveReference(element, directive.eventPart.range, directive.eventPart.name, false),
+			new KmrPascalEventDirectiveReference(element, directive.handlerPart.range, directive.handlerPart.name, true),
 		};
 	}
 
@@ -99,16 +91,6 @@ public class KmrPascalEventDirectiveReference extends PsiReferenceBase<PsiCommen
 	public Object @NotNull [] getVariants()
 	{
 		return EMPTY_ARRAY;
-	}
-
-	/** Shrinks a range so it excludes surrounding whitespace in the given text. */
-	private static TextRange trim(@NotNull TextRange range, @NotNull String text)
-	{
-		int start = range.getStartOffset();
-		int end = range.getEndOffset();
-		while (start < end && Character.isWhitespace(text.charAt(start))) start++;
-		while (end > start && Character.isWhitespace(text.charAt(end - 1))) end--;
-		return TextRange.create(start, end);
 	}
 
 }

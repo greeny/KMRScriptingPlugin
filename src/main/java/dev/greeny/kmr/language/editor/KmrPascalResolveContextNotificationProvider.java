@@ -3,6 +3,7 @@ package dev.greeny.kmr.language.editor;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -56,7 +57,7 @@ public class KmrPascalResolveContextNotificationProvider implements EditorNotifi
 				panel.createActionLabel("Switch entry point", () -> JBPopupFactory.getInstance()
 					.createPopupChooserBuilder(candidates)
 					.setTitle("Analyze " + file.getName() + " as Part Of")
-					.setRenderer(SimpleListCellRenderer.create("", candidate -> relativePath(project, candidate)))
+					.setRenderer(SimpleListCellRenderer.<VirtualFile>create((label, candidate, index) -> label.setText(relativePath(project, candidate))))
 					.setItemChosenCallback(candidate -> service.setContext(file, candidate))
 					.createPopup()
 					.showUnderneathOf(panel));
@@ -68,7 +69,7 @@ public class KmrPascalResolveContextNotificationProvider implements EditorNotifi
 	@NotNull
 	private static String relativePath(@NotNull Project project, @NotNull VirtualFile file)
 	{
-		VirtualFile base = project.getBaseDir();
+		VirtualFile base = ProjectUtil.guessProjectDir(project);
 		String relative = base == null ? null : VfsUtilCore.getRelativePath(file, base);
 		return relative == null ? file.getPath() : relative;
 	}

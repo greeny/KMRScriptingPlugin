@@ -16,12 +16,9 @@ import dev.greeny.kmr.language.psi.*;
 import dev.greeny.kmr.language.resolve.KmrPascalCallable;
 import dev.greeny.kmr.language.stubs.KmrPascalEvent;
 import dev.greeny.kmr.language.stubs.KmrPascalEvents;
-import dev.greeny.kmr.language.types.KmrTypePresenter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Locale;
 
 /**
  * A routine named like a game event (or registered with {$EVENT}) must have the event's signature: a procedure with
@@ -63,40 +60,13 @@ public class KmrPascalEventHandlerInspection extends LocalInspectionTool
 		if (event == null) {
 			return;
 		}
-		KmrPascalCallable expected = event.getSignature();
 		KmrPascalCallable actual = KmrPascalCallable.of(routine);
-		if (actual != null && matches(expected, actual)) {
+		if (actual != null && event.accepts(actual)) {
 			return;
 		}
-		String header = "procedure " + name + expected.getSignatureText(false);
+		String header = "procedure " + name + event.getSignature().getSignatureText(false);
 		holder.registerProblem(identifier, "Event handler '" + name + "' must be declared as '" + header + "'",
 			ProblemHighlightType.GENERIC_ERROR, new ChangeHeaderFix(header));
-	}
-
-	/** Same kind (procedure), same parameter count, same parameter types (names may differ). */
-	private static boolean matches(@NotNull KmrPascalCallable expected, @NotNull KmrPascalCallable actual)
-	{
-		if (actual.isFunction() != expected.isFunction()) {
-			return false;
-		}
-		List<KmrPascalParameterIdentifier> expectedParameters = expected.getParameterIdentifiers();
-		List<KmrPascalParameterIdentifier> actualParameters = actual.getParameterIdentifiers();
-		if (expectedParameters.size() != actualParameters.size()) {
-			return false;
-		}
-		for (int i = 0; i < expectedParameters.size(); i++) {
-			if (!typeOf(expectedParameters.get(i)).equals(typeOf(actualParameters.get(i)))) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/** Plain type text: the stubs' kind aliases ({@code TKMHouseID}) compare as their underlying type. */
-	@NotNull
-	private static String typeOf(@NotNull KmrPascalParameterIdentifier parameter)
-	{
-		return KmrTypePresenter.plainTypeText(parameter.getType()).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
 	}
 
 	/** Replaces everything from the routine keyword up to the header's ";" with the expected header. */

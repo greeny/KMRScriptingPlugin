@@ -10,7 +10,6 @@ import dev.greeny.kmr.language.stubs.KmrPascalEvents;
 import dev.greeny.kmr.language.stubs.KmrPascalStubLibrary;
 import dev.greeny.kmr.language.stubs.KmrPascalStubScope;
 import dev.greeny.kmr.language.unit.KmrPascalCompilationUnit;
-import dev.greeny.kmr.language.unit.KmrPascalDirective;
 import dev.greeny.kmr.language.unit.KmrPascalResolveContextService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -87,14 +86,9 @@ final class KmrPascalInspectionUtil
 	static Set<String> registeredHandlers(@NotNull KmrPascalCompilationUnit unit)
 	{
 		Set<String> result = new HashSet<>();
-		for (KmrPascalCompilationUnit.Inclusion inclusion : unit.getInclusions()) {
-			for (KmrPascalDirective directive : KmrPascalDirective.collect(inclusion.file)) {
-				if (directive.kind == KmrPascalDirective.Kind.EVENT) {
-					int colon = directive.argument.indexOf(':');
-					if (colon >= 0) {
-						result.add(directive.argument.substring(colon + 1).trim().toLowerCase(Locale.ROOT));
-					}
-				}
+		for (KmrPascalEvents.Registration registration : KmrPascalEvents.registrations(unit)) {
+			if (!registration.handlerName.isEmpty()) {
+				result.add(registration.handlerName.toLowerCase(Locale.ROOT));
 			}
 		}
 		return result;
@@ -104,14 +98,9 @@ final class KmrPascalInspectionUtil
 	@Nullable
 	static String registeredEventName(@NotNull KmrPascalCompilationUnit unit, @NotNull String handlerName)
 	{
-		for (KmrPascalCompilationUnit.Inclusion inclusion : unit.getInclusions()) {
-			for (KmrPascalDirective directive : KmrPascalDirective.collect(inclusion.file)) {
-				if (directive.kind == KmrPascalDirective.Kind.EVENT) {
-					int colon = directive.argument.indexOf(':');
-					if (colon >= 0 && directive.argument.substring(colon + 1).trim().equalsIgnoreCase(handlerName)) {
-						return directive.argument.substring(0, colon).trim();
-					}
-				}
+		for (KmrPascalEvents.Registration registration : KmrPascalEvents.registrations(unit)) {
+			if (registration.handlerName.equalsIgnoreCase(handlerName)) {
+				return registration.eventName;
 			}
 		}
 		return null;

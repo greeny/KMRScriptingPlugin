@@ -15,6 +15,18 @@
 		 Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
 	<description>Support for PascalScript used in Knights and Merchants Remake for scripting maps.</description>
 	<change-notes><![CDATA[
+	<h2>0.2.1</h2>
+	<ul>
+		<li>Added: completion inside directives: "{$" offers every directive the game knows ({$I}, {$INCLUDE}, {$DEFINE}, {$UNDEF}, {$IFDEF}, {$IFNDEF}, {$ELSE}, {$ENDIF}, {$EVENT}, {$COMMAND} / {$CMD}, {$CUSTOM_TH_TROOP_COST}, {$CUSTOM_MARKET_GOLD_PRICE_X}) and closes it, "{$EVENT " the events of the game version, and "{$EVENT evtHouseBuilt:" the procedures of the unit - those with the event's signature first, leaving out the ones that already handle an event</li>
+		<li>Added: quick fix "Create procedure '...'" on an {$EVENT} directive naming a procedure the compilation unit does not declare; the procedure is created with the event's signature</li>
+		<li>Added: a procedure named by more than one {$EVENT}, or by an {$EVENT} for the event it is the default handler of, is reported - the game refuses to register the same handler twice</li>
+		<li>Added: known values. Conditions and assignments are followed through a routine (variables, record fields, constant-indexed elements): a nested "if A = False" inside "if A = True" is reported as always false, "if Ok" after "if not Ok then exit" as always true, "if Found" right after "Found := False" as always false, ranges too ("X &lt; 3" inside "if X &gt; 5"); hover or Ctrl+Q on a variable shows the value known at that point and where it comes from</li>
+		<li>Added: States queries are treated as stable within a tick (only Actions, or a script routine that might call Actions, change the game): a repeated "States.UnitOwner(U) = 3" is always true, and a repeated query with the same arguments is a weak warning with an "Extract to variable" fix</li>
+		<li>Added: refactorings Introduce Variable (Ctrl+Alt+V, with occurrences and in-place naming), Introduce Constant (Ctrl+Alt+C) and Extract Method (Ctrl+Alt+M: statements become a procedure with parameters, var parameters and moved locals; an expression becomes a function)</li>
+		<li>Changed: uses of deprecated API members are weak warnings (still struck out), so they no longer count as warnings</li>
+		<li>Added: quick fix "Replace with '...Ex'" on deprecated API calls where the migration is exact: integer ids given as numbers or named constants become the enum members the Ex variant takes (14 becomes utMilitia, [0, 2] becomes [gtMelee, gtRanged], -1 becomes utAny for the Closest functions), results compared with or switched on constants are converted the same way, legacy calls nested in each other are rewritten together; HouseAddBuildingProgress becomes HouseAddBuildingProgressEx(..., 1) and GiveHouseSite(..., False) becomes GiveHouseSiteEx(..., 0, 0)</li>
+		<li>Added: handlers of deprecated events (OnUnitAfterDied, OnHouseAfterDestroyed, OnHousePlanPlaced, OnHousePlanRemoved, OnMarketTrade) are reported on the procedure name or on the {$EVENT} directive, with a quick fix that renames the handler (or re-points the directive), types the id parameters as the enum and converts their uses in the body</li>
+	</ul>
 	<h2>0.2.0</h2>
 	<ul>
 		<li>Added: parameter name hints in calls (Actions.ShowMsg(aHand: 0, aText: 'Hi')); hidden when the argument is named like the parameter; configurable under Settings | Editor | Inlay Hints</li>
@@ -125,6 +137,7 @@
 
 		<!-- code insight -->
 		<completion.contributor language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalCompletionContributor"/>
+		<completion.contributor language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalDirectiveCompletionContributor"/>
 		<codeInsight.parameterInfo language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalParameterInfoHandler"/>
 		<codeInsight.parameterNameHints language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalInlayParameterHintsProvider"/>
 		<lang.documentationProvider language="KmrPascal" implementationClass="dev.greeny.kmr.language.editor.KmrPascalDocumentationProvider"/>
@@ -135,7 +148,7 @@
 						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
 						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalUnresolvedReferenceInspection"/>
 		<localInspection language="KmrPascal" shortName="KmrPascalDeprecated" displayName="Deprecated API member or declaration"
-						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WEAK WARNING"
 						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalDeprecatedInspection"/>
 		<localInspection language="KmrPascal" shortName="KmrPascalArgumentCount" displayName="Wrong number of arguments"
 						 groupName="KMR PascalScript" enabledByDefault="true" level="ERROR"
@@ -170,6 +183,12 @@
 		<localInspection language="KmrPascal" shortName="KmrPascalKind" displayName="Unit ID, house ID, hand index or coordinate used as another kind"
 						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
 						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalKindInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalConstantCondition" displayName="Condition is always true or false"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalConstantConditionInspection"/>
+		<localInspection language="KmrPascal" shortName="KmrPascalRepeatedQuery" displayName="States query repeated with the same arguments"
+						 groupName="KMR PascalScript" enabledByDefault="true" level="WEAK WARNING"
+						 implementationClass="dev.greeny.kmr.language.inspections.KmrPascalRepeatedQueryInspection"/>
 		<intentionAction>
 			<language>KmrPascal</language>
 			<className>dev.greeny.kmr.language.inspections.KmrPascalIncludeGuardInspection$AddIncludeGuardFix</className>

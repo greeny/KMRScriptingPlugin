@@ -1,6 +1,5 @@
 package dev.greeny.kmr.language.editor;
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -15,6 +14,7 @@ import com.intellij.openapi.wm.StatusBarWidget;
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.util.messages.MessageBusConnection;
 import dev.greeny.kmr.language.KmrPascalFileType;
 import dev.greeny.kmr.language.stubs.KmrPascalStubLibrary;
 import dev.greeny.kmr.language.stubs.KmrPascalStubScope;
@@ -90,10 +90,10 @@ public class KmrPascalVersionStatusBarWidget extends EditorBasedStatusBarPopup
 	}
 
 	@Override
-	protected void registerCustomListeners()
+	protected void registerCustomListeners(@NotNull MessageBusConnection connection)
 	{
-		// called from the superclass constructor, so no field of this class is initialised yet: only use getProject()
-		getProject().getMessageBus().connect(this).subscribe(DumbService.DUMB_MODE, new DumbService.DumbModeListener()
+		// called from the superclass constructor, so no field of this class is initialised yet
+		connection.subscribe(DumbService.DUMB_MODE, new DumbService.DumbModeListener()
 		{
 			@Override
 			public void exitDumbMode()
@@ -132,10 +132,7 @@ public class KmrPascalVersionStatusBarWidget extends EditorBasedStatusBarPopup
 	public static void setDefaultVersion(@NotNull Project project, @NotNull String version)
 	{
 		KmrPascalProjectSettings.getInstance(project).setDefaultStubVersion(version);
-		PsiManager.getInstance(project).dropPsiCaches();
-		DaemonCodeAnalyzer.getInstance(project).restart();
-		// entry points may resolve differently now
-		KmrPascalResolveContextService.getInstance(project);
+		KmrPascalResolveContextService.reanalyseOpenFiles(project);
 	}
 
 }

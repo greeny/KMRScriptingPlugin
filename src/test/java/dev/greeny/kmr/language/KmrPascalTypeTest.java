@@ -3,6 +3,8 @@ package dev.greeny.kmr.language;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
+import dev.greeny.kmr.language.inspections.KmrPascalConstantConditionInspection;
+import dev.greeny.kmr.language.inspections.KmrPascalRepeatedQueryInspection;
 import dev.greeny.kmr.language.inspections.KmrPascalTypeCheckInspection;
 import dev.greeny.kmr.language.psi.KmrPascalAssignment;
 import dev.greeny.kmr.language.psi.KmrPascalExpression;
@@ -135,7 +137,7 @@ public class KmrPascalTypeTest extends BasePlatformTestCase
 
 	public void testNoFalsePositivesOnSampleScript() throws Exception
 	{
-		myFixture.enableInspections(new KmrPascalTypeCheckInspection());
+		myFixture.enableInspections(new KmrPascalTypeCheckInspection(), new KmrPascalConstantConditionInspection(), new KmrPascalRepeatedQueryInspection());
 		myFixture.configureByText("Sample.script", Files.readString(Path.of("src/test/testData/parser/Sample.script")));
 		myFixture.checkHighlighting();
 	}

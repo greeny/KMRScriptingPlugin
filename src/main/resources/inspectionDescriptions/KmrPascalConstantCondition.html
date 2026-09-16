@@ -1,0 +1,20 @@
+<html>
+<body>
+Reports conditions whose outcome follows from what happened before them in the same routine.
+<p>
+The plugin follows the values of variables, record fields and constant-indexed array elements through a routine, and
+what conditions say about them: inside <code>if A = True then</code>, <code>A</code> is known to be
+<code>True</code>, so a nested <code>if A = False then</code> can never run; after <code>if not Ok then exit;</code>,
+<code>Ok</code> is <code>True</code>; after <code>Found := False;</code>, <code>if Found then</code> is always false.
+Hover a variable to see the value known at that point.
+</p>
+<p>
+<code>States</code> queries are followed as well: a script runs within one game tick and only <code>Actions</code> can
+change the game, so <code>States.UnitOwner(U) = 3</code> is still true where it was true before, as long as no
+<code>Actions</code> member was called and <code>U</code> was not changed.
+</p>
+<p>
+Conditions that are constant by themselves (<code>if DEBUG then</code>, <code>while True do</code>) are not reported.
+</p>
+</body>
+</html>

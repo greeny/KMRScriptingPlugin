@@ -1,0 +1,12 @@
+<html>
+<body>
+Reports a <code>States</code> query evaluated again with the same arguments while its result cannot have changed.
+<p>
+A script runs to completion within one game tick, and only <code>Actions</code> change the game. So between two calls
+of <code>States.UnitOwner(U)</code> with no <code>Actions</code> call, no call of a routine of the script (which might
+call <code>Actions</code>) and no change of <code>U</code> in between, the second call returns the same value.
+Every <code>States</code> call crosses into the game engine, so the quick fix stores the first result in a local
+variable and uses that instead.
+</p>
+</body>
+</html>
