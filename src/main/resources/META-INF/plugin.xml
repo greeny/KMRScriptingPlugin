@@ -15,6 +15,10 @@
 		 Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
 	<description>Support for PascalScript used in Knights and Merchants Remake for scripting maps.</description>
 	<change-notes><![CDATA[
+	<h2>0.2.1a</h2>
+	<ul>
+		<li>Fixed: exception while inspecting a statement left unfinished ("if X then" or "V :=" with nothing after it)</li>
+	</ul>
 	<h2>0.2.1</h2>
 	<ul>
 		<li>Added: completion inside directives: "{$" offers every directive the game knows ({$I}, {$INCLUDE}, {$DEFINE}, {$UNDEF}, {$IFDEF}, {$IFNDEF}, {$ELSE}, {$ENDIF}, {$EVENT}, {$COMMAND} / {$CMD}, {$CUSTOM_TH_TROOP_COST}, {$CUSTOM_MARKET_GOLD_PRICE_X}) and closes it, "{$EVENT " the events of the game version, and "{$EVENT evtHouseBuilt:" the procedures of the unit - those with the event's signature first, leaving out the ones that already handle an event</li>

@@ -11,6 +11,7 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
+import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -23,7 +24,8 @@ import org.jetbrains.annotations.Nullable;
  * is a readability warning with a fix, worded as optional in both places it fires: between two statements of a block,
  * and before {@code end}, {@code until} or the {@code else} of a case. Silent where a semicolon is not allowed (a {@code then}
  * branch followed by {@code else}) and where the parser already reports an error (a single statement after
- * {@code then}/{@code else}/{@code do} followed by something other than {@code ;}, {@code else} or {@code end}).
+ * {@code then}/{@code else}/{@code do} followed by something other than {@code ;}, {@code else} or {@code end}, or a
+ * statement left unfinished, which ends in an error element).
  */
 public class KmrPascalMissingSemicolonInspection extends LocalInspectionTool
 {
@@ -40,6 +42,9 @@ public class KmrPascalMissingSemicolonInspection extends LocalInspectionTool
 					return;
 				}
 				PsiElement last = PsiTreeUtil.getDeepestLast(element);
+				if (last.getTextLength() == 0 || last instanceof PsiErrorElement) {
+					return; // a statement still being typed: the parser already reports there, and an empty element is not a valid problem anchor
+				}
 				for (PsiElement inner = last.getParent(); inner != element && inner != null; inner = inner.getParent()) {
 					if (isStatement(inner)) {
 						return; // a nested statement ends at the same place and reports there

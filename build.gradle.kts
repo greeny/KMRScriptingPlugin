@@ -1,3 +1,6 @@
+import java.io.StringReader
+import java.util.Properties
+
 plugins {
     id("java")
     id("org.jetbrains.intellij") version "1.17.4"
@@ -5,7 +8,7 @@ plugins {
 }
 
 group = "dev.greeny"
-version = "0.2.1"
+version = "0.2.1a"
 
 repositories {
     mavenCentral()
@@ -26,6 +29,14 @@ grammarKit {
     jflexRelease.set("1.9.1")
     grammarKitRelease.set("2022.3.2")
 }
+
+// The Marketplace token: from the environment, or from "publishToken=..." in local.properties, which is not
+// committed. Both are read through the provider API so the configuration cache treats them as build inputs.
+val publishToken: Provider<String> = providers.environmentVariable("PUBLISH_TOKEN").orElse(
+    providers.fileContents(layout.projectDirectory.file("local.properties")).asText
+        .map { Properties().apply { load(StringReader(it)) }.getProperty("publishToken").orEmpty() }
+        .filter(String::isNotEmpty)
+)
 
 sourceSets {
     main {
@@ -80,6 +91,7 @@ tasks {
     }
 
     publishPlugin {
-        token.set(System.getenv("PUBLISH_TOKEN"))
+        token.set(publishToken)
     }
 }
+

@@ -47,6 +47,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+### Secrets ###
+# publishToken=... for ./gradlew publishPlugin
+/local.properties
+
 ### Misc ###
 *.log
 *.hprof

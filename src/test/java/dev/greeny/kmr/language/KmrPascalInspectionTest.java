@@ -501,6 +501,32 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 			""");
 	}
 
+	public void testMissingSemicolonOnUnfinishedStatements()
+	{
+		// the statement ends in an empty error element, which must not be handed to registerProblem as the problem anchor
+		highlight("""
+			var V: Integer;
+			procedure OnTick;
+			begin
+			  if V = 1 then
+			end;
+			""");
+		highlight("""
+			var V: Integer;
+			procedure OnTick;
+			begin
+			  while V > 0 do
+			end;
+			""");
+		highlight("""
+			var V: Integer;
+			procedure OnTick;
+			begin
+			  V :=
+			end;
+			""");
+	}
+
 	public void testIncDecWithFix()
 	{
 		check("""
@@ -552,6 +578,13 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 	{
 		myFixture.configureByText("a.script", text);
 		myFixture.checkHighlighting();
+	}
+
+	/** Only asserts that highlighting a broken file does not blow up; expected problems are not listed. */
+	private void highlight(String text)
+	{
+		myFixture.configureByText("a.script", text);
+		myFixture.doHighlighting();
 	}
 
 }
