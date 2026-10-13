@@ -64,15 +64,15 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 			check("""
 				procedure OnTick;
 				begin
-				  Actions.<warning descr="Unknown member 'GiveUnitEx' of Actions (available in game version r16020)">Give<caret>UnitEx</warning>(0, 1, 1, 1, 0);
-				  <warning descr="Unresolved identifier 'Utils' (available in game version r16020)">Utils</warning>.AbsI(1);
+				  Actions.<warning descr="Unknown member 'GiveUnitEx' of Actions (available in game version r16397)">Give<caret>UnitEx</warning>(0, 1, 1, 1, 0);
+				  <warning descr="Unresolved identifier 'Utils' (available in game version r16397)">Utils</warning>.AbsI(1);
 				end;
 				""");
-			IntentionAction fix = myFixture.findSingleIntention("Switch game version to r16020");
+			IntentionAction fix = myFixture.findSingleIntention("Switch game version to r16397");
 			myFixture.launchAction(fix);
-			assertEquals("r16020", KmrPascalProjectSettings.getInstance(getProject()).getDefaultStubVersion());
+			assertEquals("r16397", KmrPascalProjectSettings.getInstance(getProject()).getDefaultStubVersion());
 		} finally {
-			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16020");
+			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16397");
 		}
 	}
 
@@ -111,6 +111,32 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 			"procedure OnTick; begin Actions.HouseAddBuildingProgressEx(States.HouseAt(1, 1), 1); end;");
 		assertFixed("Replace with 'GiveHouseSiteEx'", "procedure OnTick; begin Actions.Give<caret>HouseSite(0, 11, 1, 1, False); end;",
 			"procedure OnTick; begin Actions.GiveHouseSiteEx(0, htStore, 1, 1, 0, 0); end;");
+	}
+
+	public void testDeprecatedCallIsRewrittenToDifferentlyNamedReplacement()
+	{
+		assertFixed("Replace with 'PlayerTradeAllowed'", "procedure OnTick; begin Actions.SetTrade<caret>Allowed(0, 27, True); end;",
+			"procedure OnTick; begin Actions.PlayerTradeAllowed(0, wtFish, True); end;");
+		assertFixed("Replace with 'HouseWareAmount'", "procedure OnTick; var H: Integer; begin H := States.HouseResource<caret>Amount(H, 1); end;",
+			"procedure OnTick; var H: Integer; begin H := States.HouseWareAmount(H, wtStone); end;");
+		assertFixed("Replace with 'PlayerHouseTypeCanBuild'", "procedure OnTick; begin if States.House<caret>Unlocked(0, 11) then Exit; end;",
+			"procedure OnTick; begin if States.PlayerHouseTypeCanBuild(0, htStore) then Exit; end;");
+		// replacements the wiki marks itself
+		assertFixed("Replace with 'HouseTypeToWorkerType'", "procedure OnTick; begin if States.HouseTypeTo<caret>OccupantType(9) = -1 then Exit; end;",
+			"procedure OnTick; begin if States.HouseTypeToWorkerType(htWoodcutters) = utNone then Exit; end;");
+		// a lock value appended, a flag turned into a lock value or inverted
+		assertFixed("Replace with 'PlayerHouseTypeLock'", "procedure OnTick; begin Actions.House<caret>Unlock(0, 11); end;",
+			"procedure OnTick; begin Actions.PlayerHouseTypeLock(0, htStore, hlGranted); end;");
+		assertFixed("Replace with 'PlayerHouseTypeLock'", "procedure OnTick; begin Actions.House<caret>Allow(0, 11, False); end;",
+			"procedure OnTick; begin Actions.PlayerHouseTypeLock(0, htStore, hlBlocked); end;");
+		assertFixed("Replace with 'PlayerUnitTypeCanTrain'", "procedure OnTick; begin Actions.Unit<caret>Block(0, 14, True); end;",
+			"procedure OnTick; begin Actions.PlayerUnitTypeCanTrain(0, utMilitia, False); end;");
+		assertFixed("Replace with 'PlayerUnitTypeCanTrain'", "procedure OnTick; var B: Boolean; begin Actions.Unit<caret>Block(0, 14, B); end;",
+			"procedure OnTick; var B: Boolean; begin Actions.PlayerUnitTypeCanTrain(0, utMilitia, not B); end;");
+		assertFixed("Replace with 'PlayerUnitTypeCanTrain'", "procedure OnTick; var B: Boolean; begin Actions.Unit<caret>Block(0, 14, not B); end;",
+			"procedure OnTick; var B: Boolean; begin Actions.PlayerUnitTypeCanTrain(0, utMilitia, B); end;");
+		assertFixed("Replace with 'PlayerUnitTypeCanTrain'", "procedure OnTick; var B: Boolean; begin Actions.Unit<caret>Block(0, 14, B and B); end;",
+			"procedure OnTick; var B: Boolean; begin Actions.PlayerUnitTypeCanTrain(0, utMilitia, not (B and B)); end;");
 	}
 
 	public void testDeprecatedResultIsRewrittenWithItsConstants()
@@ -167,6 +193,9 @@ public class KmrPascalInspectionTest extends BasePlatformTestCase
 		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin if States.Unit<caret>Type(U) > 14 then U := 0; end;");
 		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin U := States.Unit<caret>Type(U); end;");
 		assertNoFix("Replace with 'UnitTypeEx'", "procedure OnTick; var U: Integer; begin case States.Unit<caret>Type(U) of 0..13: U := 1; end; end;");
+		// True keeps a granted house granted, which no lock value expresses
+		assertNoFix("Replace with 'PlayerHouseTypeLock'", "procedure OnTick; begin Actions.House<caret>Allow(0, 11, True); end;");
+		assertNoFix("Replace with 'PlayerHouseTypeLock'", "procedure OnTick; var B: Boolean; begin Actions.House<caret>Allow(0, 11, B); end;");
 	}
 
 	private void assertFixed(String fixName, String before, String after)

@@ -108,7 +108,7 @@ public class KmrPascalCodeInsightTest extends BasePlatformTestCase
 		if (myFixture.completeBasic() != null) {
 			myFixture.finishLookup(Lookup.NORMAL_SELECT_CHAR);
 		}
-		KmrPascalEvent event = KmrPascalEvents.getInstance(getProject()).findByHandlerName("r16020", "OnHouseBuilt");
+		KmrPascalEvent event = KmrPascalEvents.getInstance(getProject()).findByHandlerName("r16397", "OnHouseBuilt");
 		assertNotNull(event);
 		myFixture.checkResult("procedure OnTick;\nbegin\nend;\n\nprocedure OnHouseBuilt" + event.getSignature().getSignatureText(false) + ";\nbegin\n  <caret>\nend;");
 	}
@@ -203,7 +203,7 @@ public class KmrPascalCodeInsightTest extends BasePlatformTestCase
 			assertDoesntContain(items, "GiveUnitEx");
 			assertDoesntContain(complete("procedure P; begin <caret> end;"), "Utils", "U");
 		} finally {
-			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16020");
+			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16397");
 		}
 	}
 
@@ -285,7 +285,7 @@ public class KmrPascalCodeInsightTest extends BasePlatformTestCase
 		PsiElement showMsg = resolve("procedure P; begin Actions.Show<caret>Msg(0, ''); end;");
 		String doc = provider.generateDoc(showMsg, null);
 		assertNotNull(doc);
-		assertTrue(doc, doc.contains("procedure Actions.ShowMsg(") && doc.contains("Available since") && doc.contains("KaM Remake API (r16020)"));
+		assertTrue(doc, doc.contains("procedure Actions.ShowMsg(") && doc.contains("Available since") && doc.contains("KaM Remake API (r16397)"));
 		String navigate = provider.getQuickNavigateInfo(showMsg, null);
 		assertTrue(navigate, navigate.startsWith("procedure Actions.ShowMsg("));
 
@@ -306,19 +306,19 @@ public class KmrPascalCodeInsightTest extends BasePlatformTestCase
 	public void testStatusBarVersion()
 	{
 		myFixture.configureByText("a.script", "procedure P; begin end;");
-		assertEquals("r16020", KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), myFixture.getFile().getVirtualFile()));
-		assertEquals("KMR: r16020", KmrPascalVersionStatusBarWidget.widgetText("r16020"));
+		assertEquals("r16397", KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), myFixture.getFile().getVirtualFile()));
+		assertEquals("KMR: r16397", KmrPascalVersionStatusBarWidget.widgetText("r16397"));
 		try {
 			KmrPascalVersionStatusBarWidget.setDefaultVersion(getProject(), "r6720");
 			assertEquals("r6720", KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), myFixture.getFile().getVirtualFile()));
 			// a per-map override wins over the default
 			myFixture.addFileToProject("map.dat", "");
 			var entry = myFixture.addFileToProject("map.script", "procedure P; begin end;").getVirtualFile();
-			KmrPascalProjectSettings.getInstance(getProject()).setStubVersionOverride(entry, "r16020");
+			KmrPascalProjectSettings.getInstance(getProject()).setStubVersionOverride(entry, "r16397");
 			PsiManager.getInstance(getProject()).dropPsiCaches();
-			assertEquals("r16020", KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), entry));
+			assertEquals("r16397", KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), entry));
 		} finally {
-			KmrPascalVersionStatusBarWidget.setDefaultVersion(getProject(), "r16020");
+			KmrPascalVersionStatusBarWidget.setDefaultVersion(getProject(), "r16397");
 		}
 	}
 

@@ -9,6 +9,10 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * ASSUMPTION (not yet verified against KM_Scripting.pas): the game resolves relative to the directory of the including file first, then
  * relative to the entry point's directory. Names are matched case-insensitively because the game runs on Windows.
+ * <p>
+ * As a last resort the shared campaign folder is tried: campaign missions live in {@code <campaign>/<mission>/<mission>.script} and may
+ * include scripts from {@code <campaign>/Scripts/}. Campaigns are hard to detect, so this fallback applies to every file. When the entry
+ * point is unknown, the including file stands in for it.
  */
 public final class KmrPascalIncludeResolver
 {
@@ -25,7 +29,23 @@ public final class KmrPascalIncludeResolver
 		if (found == null && entryPoint != null) {
 			found = findRelative(entryPoint.getParent(), segments);
 		}
+		if (found == null) {
+			found = findRelative(sharedScriptsDirectory(entryPoint != null ? entryPoint : includingFile), segments);
+		}
 		return found;
+	}
+
+	/** The {@code Scripts} folder next to the main file's directory, e.g. {@code root/Scripts} for {@code root/TSK01/TSK01.script}. */
+	@Nullable
+	private static VirtualFile sharedScriptsDirectory(@NotNull VirtualFile mainFile)
+	{
+		VirtualFile directory = mainFile.getParent();
+		VirtualFile parent = directory == null ? null : directory.getParent();
+		if (parent == null) {
+			return null;
+		}
+		VirtualFile scripts = findChildIgnoreCase(parent, "Scripts");
+		return scripts != null && scripts.isDirectory() ? scripts : null;
 	}
 
 	@Nullable

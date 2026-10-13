@@ -172,7 +172,7 @@ public class KmrPascalKindTest extends BasePlatformTestCase
 	public void testPresentation()
 	{
 		myFixture.configureByText("a.script", "procedure P; begin Actions.ShowMsg(0, ''); end;");
-		KmrPascalEvent unitDied = KmrPascalEvents.getInstance(getProject()).findByHandlerName("r16020", "OnUnitDied");
+		KmrPascalEvent unitDied = KmrPascalEvents.getInstance(getProject()).findByHandlerName("r16397", "OnUnitDied");
 		assertNotNull(unitDied);
 		assertEquals("(aUnit: Integer (unit ID); aKillerOwner: Integer (hand index))", unitDied.getSignature().getSignatureText());
 		assertEquals("(aUnit: Integer; aKillerOwner: Integer)", unitDied.getSignature().getSignatureText(false));

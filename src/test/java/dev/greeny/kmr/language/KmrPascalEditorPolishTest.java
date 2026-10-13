@@ -7,7 +7,14 @@ import com.intellij.ide.fileTemplates.FileTemplate;
 import com.intellij.ide.fileTemplates.FileTemplateManager;
 import com.intellij.ide.structureView.StructureViewTreeElement;
 import com.intellij.ide.util.treeView.smartTree.TreeElement;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.impl.stickyLines.StickyLineInfo;
+import com.intellij.openapi.editor.impl.stickyLines.StickyLinesCollector;
+import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -28,8 +35,11 @@ import dev.greeny.kmr.language.editor.KmrPascalStructureViewFactory;
 import dev.greeny.kmr.language.psi.KmrPascalProcedureDeclaration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /** Editor polish: formatter, structure view, folding, gutter markers, live templates, file templates, go to symbol. */
 public class KmrPascalEditorPolishTest extends BasePlatformTestCase
@@ -242,6 +252,38 @@ public class KmrPascalEditorPolishTest extends BasePlatformTestCase
 		}
 		assertEquals(List.of("OnTick", "for I", "if I > 1", "case I"), crumbs);
 		assertEquals("procedure OnTick", provider.getElementTooltip(PsiTreeUtil.findChildOfType(myFixture.getFile(), KmrPascalProcedureDeclaration.class)));
+	}
+
+	public void testStickyLines() throws Exception
+	{
+		// the platform takes sticky lines from the breadcrumbs provider: each one is the line an enclosing construct starts on
+		myFixture.configureByText("a.script", """
+			procedure OnTick;
+			var I: Integer;
+			begin
+			  for I := 0 to 3 do
+			  begin
+			    if I > 1 then
+			    begin
+			      Actions.ShowMsg(0, 'x');
+			      Actions.ShowMsg(0, 'y');
+			    end;
+			  end;
+			end;
+			""");
+		Document document = myFixture.getEditor().getDocument();
+		VirtualFile file = myFixture.getFile().getVirtualFile();
+		// the collector insists on a background thread
+		Set<StickyLineInfo> infos = ApplicationManager.getApplication()
+			.executeOnPooledThread(() -> ReadAction.compute(() -> new StickyLinesCollector(getProject(), document).collectLines(file)))
+			.get(10, TimeUnit.SECONDS);
+		List<String> lines = new ArrayList<>();
+		for (StickyLineInfo info : infos) {
+			int line = document.getLineNumber(info.textOffset());
+			lines.add(document.getText(new TextRange(document.getLineStartOffset(line), document.getLineEndOffset(line))).trim());
+		}
+		Collections.sort(lines);
+		assertEquals(List.of("for I := 0 to 3 do", "if I > 1 then", "procedure OnTick;"), lines);
 	}
 
 	public void testRenameValidationAndConflicts()

@@ -53,6 +53,9 @@ public final class KmrPascalProjectSettings implements PersistentStateComponent<
 	@Override
 	public void loadState(@NotNull State state)
 	{
+		// stored versions that were renamed or dropped (r16020 is now r16397) are saved back under their current name
+		state.defaultStubVersion = KmrPascalStubLibrary.normalize(state.defaultStubVersion);
+		state.entryPointStubVersions.replaceAll((url, version) -> KmrPascalStubLibrary.normalize(version));
 		this.state = state;
 	}
 

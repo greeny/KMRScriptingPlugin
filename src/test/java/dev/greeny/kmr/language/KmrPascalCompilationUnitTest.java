@@ -59,6 +59,19 @@ public class KmrPascalCompilationUnitTest extends BasePlatformTestCase
 		assertInstanceOf(resolveAtCaret(), KmrPascalConstantDeclaration.class);
 	}
 
+	public void testCampaignSharedScriptsFolderIsIncludeFallback()
+	{
+		myFixture.addFileToProject("campaign/TSK01/TSK01.dat", "");
+		myFixture.addFileToProject("campaign/scripts/imported.script", "const MAX = 5;");
+		myFixture.addFileToProject("campaign/TSK01/TSK01.script", "{$I imported.script}\nprocedure OnTick; begin x := MAX; end;");
+		myFixture.configureFromTempProjectFile("campaign/TSK01/TSK01.script");
+		myFixture.getEditor().getCaretModel().moveToOffset(myFixture.getFile().getText().lastIndexOf("MAX") + 1);
+
+		assertInstanceOf(resolveAtCaret(), KmrPascalConstantDeclaration.class);
+		assertTrue(KmrPascalEntryPoints.includersOf(getProject(), myFixture.findFileInTempDir("campaign/scripts/imported.script"))
+			.contains(myFixture.getFile().getVirtualFile()));
+	}
+
 	public void testIncludeDirectiveIsReferenceToFile()
 	{
 		PsiFile shared = myFixture.addFileToProject("Shared.script", "");
@@ -174,17 +187,13 @@ public class KmrPascalCompilationUnitTest extends BasePlatformTestCase
 		PsiFile shared = myFixture.configureByText("shared.script", "procedure P; begin end;");
 		VirtualFile sharedFile = shared.getVirtualFile();
 
-		com.intellij.openapi.project.DumbServiceImpl dumbService = com.intellij.openapi.project.DumbServiceImpl.getInstance(getProject());
-		dumbService.setDumb(true);
-		try {
+		com.intellij.testFramework.DumbModeTestUtils.runInDumbModeSynchronously(getProject(), () -> {
 			assertEmpty(dev.greeny.kmr.language.unit.KmrPascalIncludeIndex.filesIncluding(getProject(), "shared.script"));
 			assertNull(new KmrPascalResolveContextNotificationProvider().collectNotificationData(getProject(), sharedFile));
-			assertEquals("r16020", dev.greeny.kmr.language.editor.KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), sharedFile));
+			assertEquals("r16397", dev.greeny.kmr.language.editor.KmrPascalVersionStatusBarWidget.effectiveVersion(getProject(), sharedFile));
 			// a context computed while dumb is provisional ...
 			assertEquals(shared, KmrPascalResolveContextService.getInstance(getProject()).getContextFor(shared));
-		} finally {
-			dumbService.setDumb(false);
-		}
+		});
 		// ... and is recomputed once indexing is over
 		assertEquals("main.script", KmrPascalResolveContextService.getInstance(getProject()).getContextFor(shared).getName());
 		assertNotNull(new KmrPascalResolveContextNotificationProvider().collectNotificationData(getProject(), sharedFile));

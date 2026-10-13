@@ -10,6 +10,7 @@ import dev.greeny.kmr.language.types.KmrTypePresenter;
 import dev.greeny.kmr.language.unit.KmrPascalProjectSettings;
 
 import java.util.List;
+import java.util.Map;
 
 /** API stubs: loading, resolution from user code, hiding, versions, events, doc tags. */
 public class KmrPascalStubTest extends BasePlatformTestCase
@@ -146,29 +147,48 @@ public class KmrPascalStubTest extends BasePlatformTestCase
 			assertInstanceOf(resolve("procedure P; begin Actions.Show<caret>Msg(0, ''); end;"), KmrPascalFieldIdentifier.class);
 			assertNull(resolve("procedure P; begin x := Utils.Abs<caret>I(1); end;"));
 			KmrPascalEvents events = KmrPascalEvents.getInstance(getProject());
-			assertTrue(events.getEvents("r6720").size() < events.getEvents("r16020").size());
+			assertTrue(events.getEvents("r6720").size() < events.getEvents("r16397").size());
 			assertNotNull(events.findByHandlerName("r6720", "OnHouseBuilt"));
 			assertNull(events.findByHandlerName("r6720", "OnHouseAfterDestroyedEx"));
 		} finally {
-			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16020");
+			KmrPascalProjectSettings.getInstance(getProject()).setDefaultStubVersion("r16397");
+		}
+	}
+
+	public void testStoredVersionsAreMigrated()
+	{
+		KmrPascalProjectSettings settings = KmrPascalProjectSettings.getInstance(getProject());
+		KmrPascalProjectSettings.State previous = settings.getState();
+		try {
+			// r16020 was renamed to r16397 (same scripting API); the pre-0.2.0 "latest" and unknown names fall back to the newest
+			KmrPascalProjectSettings.State stored = new KmrPascalProjectSettings.State();
+			stored.defaultStubVersion = "r16020";
+			stored.entryPointStubVersions.put("file:///a.script", "r16020");
+			stored.entryPointStubVersions.put("file:///b.script", "r6720");
+			stored.entryPointStubVersions.put("file:///c.script", "latest");
+			settings.loadState(stored);
+			assertEquals("r16397", settings.getState().defaultStubVersion);
+			assertEquals(Map.of("file:///a.script", "r16397", "file:///b.script", "r6720", "file:///c.script", "r16397"), settings.getState().entryPointStubVersions);
+		} finally {
+			settings.loadState(previous);
 		}
 	}
 
 	public void testEvents()
 	{
 		KmrPascalEvents events = KmrPascalEvents.getInstance(getProject());
-		KmrPascalEvent houseBuilt = events.findByHandlerName("r16020", "onhousebuilt");
+		KmrPascalEvent houseBuilt = events.findByHandlerName("r16397", "onhousebuilt");
 		assertNotNull(houseBuilt);
 		assertEquals("evtHouseBuilt", houseBuilt.eventName);
 		assertEquals(1, houseBuilt.getSignature().getParameterCount());
 		assertEquals("Integer", houseBuilt.getSignature().getParameterDeclarations().get(0).getTypeSpec().getText());
 		assertEquals("(aHouse: Integer (house ID))", houseBuilt.getSignature().getSignatureText());
-		assertSame(houseBuilt, events.findByEventName("r16020", "EVTHOUSEBUILT"));
+		assertSame(houseBuilt, events.findByEventName("r16397", "EVTHOUSEBUILT"));
 		assertNotNull(houseBuilt.doc);
 		assertFalse(houseBuilt.doc.getDescription().isEmpty());
 		assertEquals("5057", houseBuilt.doc.getTagValue("since"));
 		// an event with several parameters keeps their order and names
-		KmrPascalEvent unitDied = events.findByHandlerName("r16020", "OnUnitDied");
+		KmrPascalEvent unitDied = events.findByHandlerName("r16397", "OnUnitDied");
 		assertNotNull(unitDied);
 		assertEquals(List.of("aUnit", "aKillerOwner"), unitDied.getSignature().getParameterIdentifiers().stream().map(KmrPascalParameterIdentifier::getName).toList());
 		// convention when no @event tag is present

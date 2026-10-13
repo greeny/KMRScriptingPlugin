@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Status bar item "KMR: r16020" shown while a script is open (like PhpStorm's PHP language level): displays the
+ * Status bar item "KMR: r16397" shown while a script is open (like PhpStorm's PHP language level): displays the
  * game version whose API stubs are used for the current file and switches the project-wide default on click.
  */
 public class KmrPascalVersionStatusBarWidget extends EditorBasedStatusBarPopup

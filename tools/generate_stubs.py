@@ -19,7 +19,7 @@ applied to generated members, events, record fields and to override entries alik
 Doc comments are block comments ({ ... } with the text indented one tab deeper); indentation uses tabs.
 
 A member is emitted for a version when its wiki Version (e.g. "7000+", "14600") is <= the version's revision;
-the newest version (r16020, no maximum) takes everything. Members marked "-" (not implemented) are skipped. The wiki only documents *current*
+the newest version (r16397, no maximum) takes everything. Members marked "-" (not implemented) are skipped. The wiki only documents *current*
 signatures, so older versions may need hand-written corrections: tools/overrides/<version>/<File>.script holds
 complete replacement entries (comment + declaration, separated by blank lines) matched by name; an entry whose
 comment contains "@remove" deletes the member.
@@ -41,8 +41,8 @@ DEFAULT_OUT = os.path.join(ROOT, "src", "main", "resources", "stubs")
 WIKI = "https://raw.githubusercontent.com/wiki/reyandme/kam_remake/{page}-(Mission-Script-Dynamic).md"
 
 # version name -> max revision (None = everything)
-# "r16020" is the current build the stubs are generated for and takes everything the wiki lists
-VERSIONS = {"r16020": None, "r6720": 6720}
+# "r16397" is the current build the stubs are generated for and takes everything the wiki lists
+VERSIONS = {"r16397": None, "r6720": 6720}
 
 # page -> (record type, variable names)
 OBJECTS = {
@@ -51,9 +51,22 @@ OBJECTS = {
     "Utils": ("TKMScriptUtils", ["Utils", "U"], "helper functions"),
 }
 
+# deprecated members whose replacement is not named "<Name>Ex" and not marked on the wiki, verified against the bodies
+# in KM_ScriptingActions.pas / KM_ScriptingStates.pas: "Page.Name" -> (replacement, note on how to call it)
+REPLACEMENTS = {
+    "Actions.HouseAllow": ("PlayerHouseTypeLock", "hlBlocked for False; hlDefault for True, which unlike HouseAllow also resets hlGranted"),
+    "Actions.HouseUnlock": ("PlayerHouseTypeLock", "with hlGranted"),
+    "Actions.SetTradeAllowed": ("PlayerTradeAllowed", None),
+    "Actions.UnitBlock": ("PlayerUnitTypeCanTrain", "with the flag inverted"),
+    "States.HouseResourceAmount": ("HouseWareAmount", None),
+    "States.HouseUnlocked": ("PlayerHouseTypeCanBuild", None),
+}
+
 ROW = re.compile(r'^\| ([^|]*) \| <a id="([^"]+)">')
 PARAM = re.compile(r'^\*\*([^*]+)\*\*:\s*([^;/]+?)\s*;?\s*(?://\s*(.*?)\s*)?$')
 RETURN = re.compile(r'^([A-Za-z][A-Za-z0-9_ ]*?)\s*(?://\s*(.*?)\s*)?$')
+# the wiki's own deprecation notice in the name cell: "❌`Deprecated`<sub>*... use <a href="#HouseHasWorker">...*</sub>"
+WIKI_DEPRECATION = re.compile(r'<br/>&#x274C;`Deprecated`<br/><sub>\*[^*]*?<a href="#(\w+)">[^*]*\*</sub>')
 
 
 def fetch(page, offline):
@@ -91,8 +104,9 @@ def parse_version(text):
 
 
 class Member:
-    def __init__(self, name, version, description, params, returns):
+    def __init__(self, name, version, description, params, returns, replacement=None):
         self.name, self.version, self.description, self.params, self.returns = name, version, description, params, returns
+        self.replacement = replacement  # the member to use instead, as the wiki names it
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -212,7 +226,8 @@ def parse_members(md, has_returns):
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         version = parse_version(cells[0])
         name = match.group(2)
-        description = clean(cells[1])
+        deprecation = WIKI_DEPRECATION.search(cells[1])
+        description = clean(WIKI_DEPRECATION.sub("", cells[1]))
         if description and description[0] == name:
             description = description[1:]
         params = []
@@ -228,12 +243,12 @@ def parse_members(md, has_returns):
         returns = None
         if has_returns and len(cells) > 3:
             raw = re.sub(r"</?sub>", "", cells[3]).strip()
-            if raw:
+            if raw and raw != "-":  # procedures: empty, or "-" since r16397
                 rm = RETURN.match(raw)
                 if not rm:
                     raise SystemExit(f"cannot parse return '{raw}' of {name}")
                 returns = (rm.group(1).strip(), (rm.group(2) or "").strip("_ "))
-        members.append(Member(name, version, description, params, returns))
+        members.append(Member(name, version, description, params, returns, deprecation.group(1) if deprecation else None))
     return members
 
 
@@ -285,9 +300,15 @@ def member_doc(member, page, names=()):
     lines = list(member.description) or [member.name]
     if member.version:
         lines.append(f"@since {member.version}")
+    replacement, note = member.replacement, None
     if (member.name + "Ex").lower() in names:
         # a newer variant taking TKMUnitType-style enums exists: the integer-id one is legacy
-        lines.append(f"@deprecated Use {member.name}Ex instead")
+        replacement = member.name + "Ex"
+    elif f"{page}.{member.name}" in REPLACEMENTS:
+        replacement, note = REPLACEMENTS[f"{page}.{member.name}"]
+    if replacement and replacement.lower() in names:
+        # the replacement may be newer than the version being generated: then the member is not deprecated there
+        lines.append(f"@deprecated Use {replacement} instead" + (f" ({note})" if note else ""))
     for names, _type, comment in member.params:
         # the wiki documents only some parameters; the others get a bare @param so the list is complete
         lines.append(f"@param {', '.join(bare_name(n) for n in names)}" + (f" {comment}" if comment else ""))

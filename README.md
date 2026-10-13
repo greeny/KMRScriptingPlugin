@@ -2,7 +2,7 @@
 
 JetBrains IDE plugin for the PascalScript dialect used to script maps in
 [Knights and Merchants Remake](https://www.kamremake.com/) (KMR). Works in any IntelliJ-based IDE
-(IntelliJ IDEA, PhpStorm, WebStorm, PyCharm, ...) from build 232 (2023.2) on.
+(IntelliJ IDEA, PhpStorm, WebStorm, PyCharm, ...) from build 241 (2024.1) on.
 
 **Status: beta.** The plugin is used on real map scripts, but expect rough edges. Please report
 anything the game accepts and the plugin flags (or the other way round).
@@ -20,7 +20,7 @@ anything the game accepts and the plugin flags (or the other way round).
   documented stubs generated from the [official wiki](https://github.com/reyandme/kam_remake/wiki),
   plus PascalScript's standard routines (`Inc`, `Length`, `IntToStr`, ...) exactly as the game's
   compiler defines them. Ctrl+click `Actions.ShowMsg` to open its declaration.
-- **Game version** per project and per map (`r16020`, `r6720`), switchable from the status bar or under
+- **Game version** per project and per map (`r16397`, `r6720`), switchable from the status bar or under
   *Settings | Languages & Frameworks | KMR PascalScript*. Members missing in the selected version are
   reported, with a quick fix to switch.
 - Code completion (API members, your own declarations, keywords, event handler templates when you type

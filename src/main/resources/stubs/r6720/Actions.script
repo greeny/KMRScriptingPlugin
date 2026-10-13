@@ -412,7 +412,7 @@ type
 		GiveWineField: function(aHand: Integer; X, Y: Integer): Boolean;
 
 		{
-			Disables (Disable = True) or enables (Disable = False) control over specifed warriors group
+			Disables (Disable = True) or enables (Disable = False) control over specified warriors group
 			@since 6277
 			@param aGroupID
 			@param aBlock
@@ -497,7 +497,7 @@ type
 
 		{
 			Order the specified group to split in half.
-			Return the newly create group ID or -1 if splitting failed (e.g. only 1 member)
+			Return the newly created group ID or -1 if splitting failed (e.g. only 1 member)
 			@since 5057
 			@param aGroupID
 			@kind aGroupID groupId
@@ -507,7 +507,7 @@ type
 
 		{
 			Splits specified unit from the group.
-			Returns the newly create group ID or -1 if splitting failed (e.g. only 1 member)
+			Returns the newly created group ID or -1 if splitting failed (e.g. only 1 member)
 			@since 6338
 			@param aGroupID
 			@param aUnitID
@@ -750,7 +750,7 @@ type
 		{
 			Sets the height of the terrain at the top left corner (vertex) of the tile at the specified XY coordinates.
 			Returns True if the change succeeded or False if it failed.
-			The change will fail if it would cause a unit to become stuck or a house to be damaged
+			The change will fail if it would cause a unit to get stuck or a house to be damaged
 			@since 6587
 			@param X, Y
 			@param Height Height (0..100)
@@ -764,7 +764,7 @@ type
 			Object IDs can be seen in the map editor on the objects tab.
 			Object 61 is "block walking". To set no object, use object type 255.
 			Returns True if the change succeeded or False if it failed.
-			The change will fail if it would cause a unit to become stuck or a house/field to be damaged
+			The change will fail if it would cause a unit to get stuck or a house/field to be damaged
 			@since 6587
 			@param X, Y
 			@param Obj Object type (0..255)
@@ -777,7 +777,7 @@ type
 			Sets the tile type and rotation at the specified XY coordinates.
 			Tile IDs can be seen by hovering over the tiles on the terrain tiles tab in the map editor.
 			Returns True if the change succeeded or False if it failed.
-			The change will fail if it would cause a unit to become stuck or a house/field to be damaged
+			The change will fail if it would cause a unit to get stuck or a house/field to be damaged
 			@since 6587
 			@param X, Y
 			@param aType Tile type (0..255)

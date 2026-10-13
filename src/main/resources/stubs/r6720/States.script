@@ -316,8 +316,6 @@ type
 		HouseDestroyed: function(aHouseID: Integer): Boolean;
 
 		{
-			❌`Deprecated`
-			*Method could be removed in the future game versions, use HouseHasWorker instead*
 			Returns True if the specified house currently has a worker
 			@since 5057
 			@param aHouseID
@@ -437,8 +435,6 @@ type
 		HouseTypeName: function(aHouseType: Byte): AnsiString;
 
 		{
-			❌`Deprecated`
-			*Method could be removed in the future game versions, use HouseTypeToWorkerType instead*
 			Returns the type of unit that should work in the specified type of house, or -1 if no unit should work in it.
 			@since 5345
 			@param aHouseType

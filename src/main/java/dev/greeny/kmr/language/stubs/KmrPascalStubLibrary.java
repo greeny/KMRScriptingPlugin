@@ -34,8 +34,9 @@ public final class KmrPascalStubLibrary
 {
 
 	/** The newest supported game version; also what a stored legacy "latest" setting maps to. */
-	public static final String LATEST = "r16020";
-	private static final String LEGACY_LATEST = "latest";
+	public static final String LATEST = "r16397";
+	/** Stored versions whose stub set was renamed to a newer build with the same scripting API. */
+	private static final Map<String, String> RENAMED = Map.of("r16020", "r16397");
 	/** Supported stub sets, newest first. */
 	public static final List<String> VERSIONS = List.of(LATEST, "r6720");
 
@@ -101,11 +102,12 @@ public final class KmrPascalStubLibrary
 		return sets.computeIfAbsent(normalize(version), this::load);
 	}
 
-	/** A supported version name: unknown names and the legacy "latest" become {@link #LATEST}. */
+	/** A supported version name: renamed versions become their new name, unknown names and the legacy "latest" become {@link #LATEST}. */
 	@NotNull
 	public static String normalize(@Nullable String version)
 	{
-		return version != null && VERSIONS.contains(version) && !LEGACY_LATEST.equals(version) ? version : LATEST;
+		String renamed = version == null ? null : RENAMED.getOrDefault(version, version);
+		return renamed != null && VERSIONS.contains(renamed) ? renamed : LATEST;
 	}
 
 	/** The stub version a file belongs to, or null for ordinary files. */

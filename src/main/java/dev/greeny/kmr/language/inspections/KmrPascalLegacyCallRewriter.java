@@ -29,10 +29,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Rewrites a call of a deprecated API member to its {@code ...Ex} sibling: {@code Actions.GiveUnit(0, 14, X, Y, 4)}
- * becomes {@code Actions.GiveUnitEx(0, utMilitia, X, Y, dirS)}. A rewrite is offered only when it is exact:
+ * Rewrites a call of a deprecated API member to the replacement its {@code @deprecated Use X instead} tag names, usually
+ * its {@code ...Ex} sibling: {@code Actions.GiveUnit(0, 14, X, Y, 4)} becomes {@code Actions.GiveUnitEx(0, utMilitia, X, Y, dirS)}.
+ * A rewrite is offered only when it is exact:
  * <ul>
  * <li>parameters pair up by position with the same type, or an integer id becomes an enum ({@link KmrPascalLegacyIds})
  * and the argument is a constant (a number, a named constant, or another rewritable legacy call returning that enum),
@@ -41,7 +44,10 @@ import java.util.Set;
  * {@code in} against a literal set of constants, switched on in a {@code case} with constant labels, or passed straight
  * into another legacy call being rewritten;</li>
  * <li>{@code HouseAddBuildingProgress} (one step) becomes {@code HouseAddBuildingProgressEx(..., 1)};
- * {@code GiveHouseSite(..., False)} becomes {@code GiveHouseSiteEx(..., 0, 0)}.</li>
+ * {@code GiveHouseSite(..., False)} becomes {@code GiveHouseSiteEx(..., 0, 0)};</li>
+ * <li>{@code HouseUnlock(H, T)} becomes {@code PlayerHouseTypeLock(H, T, hlGranted)}; {@code HouseAllow(H, T, False)}
+ * becomes {@code PlayerHouseTypeLock(H, T, hlBlocked)} ({@code True} keeps a granted lock, which no lock value does);
+ * {@code UnitBlock(H, T, B)} becomes {@code PlayerUnitTypeCanTrain(H, T, not B)}.</li>
  * </ul>
  * An event handler migration ({@link KmrPascalLegacyEventRewriter}) passes the handler parameters that turn into enums
  * as {@code enumParameters}: a plain reference to one of them already is the enum value the Ex variant wants.
@@ -52,6 +58,7 @@ final class KmrPascalLegacyCallRewriter
 
 	/** The old functions where {@code -1} meant "any type" (the Ex variants take the {@code xxAny} member). */
 	private static final Set<String> MINUS_ONE_IS_ANY = Set.of("closestgroup", "closesthouse", "closestunit");
+	private static final Pattern REPLACEMENT = Pattern.compile("\\bUse\\s+(\\w+)");
 	private static final int MAX_NESTING = 4;
 	private static final int MAX_CONSTANT_DEPTH = 8;
 
@@ -104,18 +111,28 @@ final class KmrPascalLegacyCallRewriter
 		if (name == null || record == null) {
 			return null;
 		}
-		List<KmrPascalFieldIdentifier> siblings = KmrPascalTypeUtil.findFields(record, name + "Ex");
 		KmrPascalCallable old = KmrPascalCallable.of(target);
+		String newName = old == null ? null : replacementName(old);
+		List<KmrPascalFieldIdentifier> siblings = newName == null ? List.of() : KmrPascalTypeUtil.findFields(record, newName);
 		KmrPascalCallable ex = siblings.size() == 1 ? KmrPascalCallable.of(siblings.get(0)) : null;
-		if (old == null || ex == null) {
+		if (ex == null) {
 			return null;
 		}
 		List<Edit> edits = new ArrayList<>();
-		edits.add(new Edit(callee.getNameIdentifier().getTextRange(), name + "Ex"));
+		edits.add(new Edit(callee.getNameIdentifier().getTextRange(), newName));
 		if (!convertArguments(call, name, old, ex, enumParameters, edits, depth) || !convertResult(call, old, ex, expectedResultEnum, edits)) {
 			return null;
 		}
-		return new Plan(name + "Ex", edits);
+		return new Plan(newName, edits);
+	}
+
+	/** The member the deprecation message names ({@code Use PlayerTradeAllowed instead}), or null. */
+	@Nullable
+	private static String replacementName(@NotNull KmrPascalCallable deprecated)
+	{
+		String message = deprecated.getDeprecationMessage();
+		Matcher matcher = message == null ? null : REPLACEMENT.matcher(message);
+		return matcher != null && matcher.find() ? matcher.group(1) : null;
 	}
 
 	/** The resolved stub member when it is deprecated, else null. */
@@ -161,7 +178,9 @@ final class KmrPascalLegacyCallRewriter
 		}
 		// GiveHouseSite's trailing "add all materials" flag became explicit wood and stone amounts
 		boolean houseSite = name.equalsIgnoreCase("GiveHouseSite") && oldParams.size() == 5 && newParams.size() == 6;
-		int paired = houseSite ? 4 : Math.min(oldParams.size(), newParams.size());
+		// HouseAllow's and UnitBlock's flag became PlayerHouseTypeLock's lock value and PlayerUnitTypeCanTrain's inverted flag
+		boolean lastFlag = (name.equalsIgnoreCase("HouseAllow") || name.equalsIgnoreCase("UnitBlock")) && oldParams.size() == 3 && newParams.size() == 3;
+		int paired = houseSite ? 4 : lastFlag ? 2 : Math.min(oldParams.size(), newParams.size());
 		for (int i = 0; i < paired; i++) {
 			if (!convertArgument(values.get(i), oldParams.get(i), newParams.get(i), name, enumParameters, edits, depth)) {
 				return false;
@@ -175,6 +194,9 @@ final class KmrPascalLegacyCallRewriter
 			edits.add(new Edit(values.get(4).getTextRange(), "0, 0"));
 			return true;
 		}
+		if (lastFlag) {
+			return name.equalsIgnoreCase("HouseAllow") ? convertAllowFlag(values.get(2), edits) : invertFlag(values.get(2), edits);
+		}
 		if (newParams.size() == oldParams.size()) {
 			return true;
 		}
@@ -183,7 +205,56 @@ final class KmrPascalLegacyCallRewriter
 			edits.add(new Edit(TextRange.from(values.get(values.size() - 1).getTextRange().getEndOffset(), 0), ", 1"));
 			return true;
 		}
+		// HouseUnlock granted the house; PlayerHouseTypeLock takes the lock to set
+		if (name.equalsIgnoreCase("HouseUnlock") && newParams.size() == oldParams.size() + 1 && declares(call, "hlGranted")) {
+			edits.add(new Edit(TextRange.from(values.get(values.size() - 1).getTextRange().getEndOffset(), 0), ", hlGranted"));
+			return true;
+		}
 		return false;
+	}
+
+	/**
+	 * {@code HouseAllow(..., False)} blocks the house whatever its lock was: {@code hlBlocked}. {@code True} unblocks a
+	 * blocked house but keeps a granted one granted, which no single lock value expresses.
+	 */
+	private static boolean convertAllowFlag(@NotNull KmrPascalExpression flag, @NotNull List<Edit> edits)
+	{
+		if (!"false".equals(booleanLiteral(flag)) || !declares(flag, "hlBlocked")) {
+			return false;
+		}
+		edits.add(new Edit(flag.getTextRange(), "hlBlocked"));
+		return true;
+	}
+
+	/** {@code True} and {@code False} swap; anything else gets {@code not}, parenthesized unless it is a single operand. */
+	private static boolean invertFlag(@NotNull KmrPascalExpression flag, @NotNull List<Edit> edits)
+	{
+		String literal = booleanLiteral(flag);
+		KmrPascalExpression inner = unwrap(flag);
+		String text;
+		if (literal != null) {
+			text = literal.equals("true") ? "False" : "True";
+		} else if (inner instanceof KmrPascalUnaryExpression unary && KmrTypeProvider.operatorOf(unary) == KmrPascalTypes.NOT && unary.getExpression() != null) {
+			text = unary.getExpression().getText(); // not X: drop the not
+		} else {
+			boolean simple = flag instanceof KmrPascalParenExpression || inner instanceof KmrPascalIdentifierExpression || inner instanceof KmrPascalReferenceExpression
+				|| inner instanceof KmrPascalCallExpression;
+			text = simple ? "not " + flag.getText() : "not (" + flag.getText() + ")";
+		}
+		edits.add(new Edit(flag.getTextRange(), text));
+		return true;
+	}
+
+	/** {@code "true"} or {@code "false"} for a boolean literal (in parentheses), else null. */
+	@Nullable
+	private static String booleanLiteral(@NotNull KmrPascalExpression expression)
+	{
+		KmrPascalExpression inner = unwrap(expression);
+		if (!(inner instanceof KmrPascalLiteralExpression)) {
+			return null;
+		}
+		String text = inner.getText().toLowerCase(Locale.ROOT);
+		return text.equals("true") || text.equals("false") ? text : null;
 	}
 
 	private static boolean convertArgument(@NotNull KmrPascalExpression value, @NotNull KmrPascalParameterIdentifier oldParam, @NotNull KmrPascalParameterIdentifier newParam,
@@ -449,7 +520,7 @@ final class KmrPascalLegacyCallRewriter
 		@Override
 		public @NotNull String getFamilyName()
 		{
-			return "Replace deprecated call with its Ex variant";
+			return "Replace deprecated call with its replacement";
 		}
 
 		@Override
