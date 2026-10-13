@@ -15,13 +15,16 @@
 		 Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
 	<description>Support for PascalScript used in Knights and Merchants Remake for scripting maps.</description>
 	<change-notes><![CDATA[
-	<h2>0.2.2</h2>
+	<h2>0.2.3</h2>
 	<ul>
-		<li>Fixed: exception while inspecting a statement left unfinished ("if X then" or "V :=" with nothing after it)</li>
 		<li>Changed: requires IntelliJ-based IDEs 2024.1 or newer; scripts get sticky lines (the enclosing procedure, loops and ifs stay pinned at the top of the editor while scrolling)</li>
 		<li>Changed: the newest game version is r16397 (same scripting API as r16020, documentation fixes only); projects and maps set to r16020 switch to it</li>
 		<li>Added: includes not found next to the including file or the map fall back to the campaign's shared "Scripts" folder (root/Scripts for root/TSK01/TSK01.script)</li>
 		<li>Added: deprecation of API members replaced by a differently named one (HouseAllow, HouseUnlock, SetTradeAllowed, UnitBlock, HouseUnlocked, HouseResourceAmount, HouseHasOccupant, HouseTypeToOccupantType), with the quick fix rewriting calls where exact (UnitBlock's flag is inverted, HouseUnlock gets hlGranted, HouseAllow(..., False) becomes hlBlocked)</li>
+	</ul>
+	<h2>0.2.2</h2>
+	<ul>
+		<li>Fixed: exception while inspecting a statement left unfinished ("if X then" or "V :=" with nothing after it)</li>
 	</ul>
 	<h2>0.2.1</h2>
 	<ul>
